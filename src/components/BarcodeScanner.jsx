@@ -1,43 +1,46 @@
-// src/components/BarcodeScanner.jsx
 import React, { useEffect } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 
 export default function BarcodeScanner({ onDetected }) {
   useEffect(() => {
-    const scanner = new Html5Qrcode("reader");
-
-    const startScanner = async () => {
-      try {
-        await scanner.start(
-          { facingMode: "environment" }, // 후면 카메라 사용
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-          },
-          (decodedText, decodedResult) => {
-            const code = decodedText.trim().toLowerCase();
-            onDetected(code); // 결과 전달
-            scanner.stop(); // 스캔 종료
-          },
-          (errorMessage) => {
-            // console.log("스캔 실패", errorMessage);
-          }
-        );
-      } catch (err) {
-        console.error("카메라 접근 오류:", err);
-      }
+    const config = {
+      fps: 10,
+      qrbox: { width: 250, height: 100 }, // 스캔 영역
+      aspectRatio: 1.777, // 16:9 화면에 최적화
     };
 
-    startScanner();
+    const html5QrCode = new Html5Qrcode("reader");
+
+    html5QrCode
+      .start(
+        { facingMode: "environment" }, // 후면 카메라 우선
+        config,
+        (decodedText) => {
+          html5QrCode.stop().then(() => {
+            onDetected(decodedText);
+          });
+        },
+        (error) => {
+          // 인식 실패 시에도 아무 동작 안함 (에러 무시)
+        }
+      )
+      .catch((err) => {
+        console.error("Camera start error:", err);
+      });
 
     return () => {
-      scanner.stop().catch(() => {});
+      html5QrCode
+        .stop()
+        .then(() => html5QrCode.clear())
+        .catch((err) => console.error("Cleanup error:", err));
     };
   }, [onDetected]);
 
   return (
-    <div className="mt-4">
-      <div id="reader" style={{ width: "100%" }}></div>
-    </div>
+    <div
+      id="reader"
+      className="w-full max-w-md mx-auto border rounded overflow-hidden"
+      style={{ height: "300px" }}
+    />
   );
 }

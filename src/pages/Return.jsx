@@ -38,7 +38,7 @@ export default function Return() {
     const bookData = bookSnap.data();
 
     if (bookData.rentedBy !== employeeId) {
-      alert("해당 사번으로 대여한 기록이 없습니다.");
+      alert("해당 사번으로 대여된 도서가 아닙니다.");
       return;
     }
 
@@ -56,7 +56,7 @@ export default function Return() {
       avgRating: parseFloat(avgRating.toFixed(2)),
     });
 
-    // 2️⃣ rentLogs 업데이트
+    // 2️⃣ rentLogs에서 해당 로그 찾아 returnedAt 업데이트
     const logsRef = collection(db, "rentLogs");
     const q = query(
       logsRef,
