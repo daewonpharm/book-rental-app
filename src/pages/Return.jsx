@@ -94,10 +94,11 @@ export default function Return() {
       </button>
 
       {scanning && (
-        <BarcodeScanner
-          onDetected={(code) => {
-            setBookCode(code);
-            setScanning(false);
+<BarcodeScanner
+  onDetected={(code) => {
+    console.log("✅ 스캔된 코드:", code);
+    setBookCode(code);       // ✅ 코드 입력
+    setScanning(false);      // ✅ 스캔창 종료
           }}
         />
       )}

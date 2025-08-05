@@ -88,10 +88,11 @@ export default function Rent() {
       {/* ✅ Step 3: 카메라 영역 스타일 조정 */}
       {scanning && (
         <div className="max-w-md w-full mx-auto">
-          <BarcodeScanner
-            onDetected={(code) => {
-              setBookCode(code);
-              setScanning(false);
+<BarcodeScanner
+  onDetected={(code) => {
+    console.log("✅ 스캔된 코드:", code);
+    setBookCode(code);       // ✅ 코드 입력
+    setScanning(false);      // ✅ 스캔창 종료
             }}
           />
         </div>
