@@ -38,7 +38,7 @@ export default function Return() {
     const bookData = bookSnap.data();
 
     if (bookData.rentedBy !== employeeId) {
-      alert("해당 사번으로 대여된 도서가 아닙니다.");
+      alert("해당 도서를 대여한 사번이 아닙니다.");
       return;
     }
 
@@ -88,20 +88,18 @@ export default function Return() {
 
       <button
         className="bg-gray-200 px-4 py-2 rounded"
-        onClick={() => setScanning(!scanning)}
+        onClick={() => setScanning(true)}
       >
-        {scanning ? "📷 스캔 중지" : "📷 바코드 스캔"}
+        📷 바코드 스캔
       </button>
 
       {scanning && (
-<BarcodeScanner
-  onDetected={(code) => {
-    // 딜레이를 줘서 상태 변경 타이밍 충돌 방지
-    setTimeout(() => {
-      setBookCode(code);
-      setScanning(false);
-    }, 800);
+        <BarcodeScanner
+          onDetected={(code) => {
+            setBookCode(code);
+            setScanning(false);
           }}
+          onClose={() => setScanning(false)}
         />
       )}
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { db } from "../firebase";
 import {
   doc,
@@ -14,18 +14,6 @@ export default function Rent() {
   const [bookCode, setBookCode] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [scanning, setScanning] = useState(false);
-  const [cameraSupported, setCameraSupported] = useState(true);
-
-  useEffect(() => {
-    // ✅ Step 2: 브라우저 카메라 지원 여부 확인
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
-    ) {
-      setCameraSupported(false);
-      alert("⚠️ 현재 브라우저는 카메라 기능을 지원하지 않습니다.");
-    }
-  }, []);
 
   const handleRent = async () => {
     if (!bookCode || !employeeId) {
@@ -75,29 +63,21 @@ export default function Rent() {
     <div className="space-y-4">
       <h2 className="text-xl font-bold">📥 도서 대여</h2>
 
-      {/* ✅ Step 1, 2, 3: 바코드 스캔 버튼 */}
-      {cameraSupported && (
-        <button
-          className="bg-gray-200 px-4 py-2 rounded"
-          onClick={() => setScanning(!scanning)}
-        >
-          {scanning ? "📷 스캔 중지" : "📷 바코드 스캔"}
-        </button>
-      )}
+      <button
+        className="bg-gray-200 px-4 py-2 rounded"
+        onClick={() => setScanning(true)}
+      >
+        📷 바코드 스캔
+      </button>
 
-      {/* ✅ Step 3: 카메라 영역 스타일 조정 */}
       {scanning && (
-        <div className="max-w-md w-full mx-auto">
-<BarcodeScanner
-  onDetected={(code) => {
-    // 딜레이를 줘서 상태 변경 타이밍 충돌 방지
-    setTimeout(() => {
-      setBookCode(code);
-      setScanning(false);
-    }, 800);
-            }}
-          />
-        </div>
+        <BarcodeScanner
+          onDetected={(code) => {
+            setBookCode(code);
+            setScanning(false);
+          }}
+          onClose={() => setScanning(false)}
+        />
       )}
 
       <input
