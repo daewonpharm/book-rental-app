@@ -5,17 +5,11 @@ import { Html5Qrcode } from "html5-qrcode";
 export default function BarcodeScanner({ onDetected }) {
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("reader");
-
     let isScanned = false;
 
     const startScanner = async () => {
       try {
         const devices = await Html5Qrcode.getCameras();
-
-        if (!devices || devices.length === 0) {
-          alert("카메라를 찾을 수 없습니다.");
-          return;
-        }
 
         const rearCamera = devices.find(
           (d) =>
@@ -25,25 +19,28 @@ export default function BarcodeScanner({ onDetected }) {
 
         await html5QrCode.start(
           rearCamera.id,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-          },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
           async (decodedText) => {
             if (isScanned) return;
             isScanned = true;
 
-            await html5QrCode.stop(); // ✅ 먼저 스캔 중단
-            document.getElementById("reader").innerHTML = ""; // ✅ 카메라 뷰 제거
+            console.log("✅ 스캔 성공:", decodedText);
 
-            onDetected(decodedText); // ✅ 상태 업데이트는 그 다음
+            // 1️⃣ 0.5초 뒤에 종료 → 충돌 방지
+            setTimeout(async () => {
+              try {
+                await html5QrCode.stop();
+              } catch (e) {
+                console.warn("❌ 스캐너 종료 중 오류:", e);
+              }
+              document.getElementById("reader").innerHTML = "";
+              onDetected(decodedText); // 2️⃣ 종료 이후 전달
+            }, 500);
           },
-          (errorMessage) => {
-            // 필요시 무시
-          }
+          () => {}
         );
-      } catch (err) {
-        console.error("스캐너 시작 실패", err);
+      } catch (e) {
+        console.error("❌ 카메라 시작 실패:", e);
       }
     };
 
@@ -55,6 +52,14 @@ export default function BarcodeScanner({ onDetected }) {
   }, [onDetected]);
 
   return (
-    <div id="reader" style={{ width: "100%", maxWidth: "400px", margin: "auto" }} />
+    <div
+      id="reader"
+      style={{
+        width: "100%",
+        maxWidth: "400px",
+        margin: "auto",
+        aspectRatio: "1 / 1",
+      }}
+    />
   );
 }

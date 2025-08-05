@@ -96,9 +96,10 @@ export default function Return() {
       {scanning && (
 <BarcodeScanner
   onDetected={(code) => {
-    console.log("✅ 바코드 인식됨:", code);
-    setBookCode(code);        // 1. 코드 입력
-    setScanning(false);       // 2. 스캐너 종료 (렌더링 트리거)
+    setTimeout(() => {
+      setBookCode(code);
+      setScanning(false);
+    }, 100); // 너무 빠르게 setState 하면 문제 생김
           }}
         />
       )}
