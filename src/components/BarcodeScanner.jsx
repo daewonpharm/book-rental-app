@@ -1,66 +1,68 @@
-// src/components/BarcodeScanner.jsx
-import React, { useEffect } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import React, { useEffect, useRef } from "react";
+import { BrowserMultiFormatReader } from "@zxing/library";
 
-export default function BarcodeScanner({ onDetected }) {
+export default function BarcodeScanner({ onDetected, onClose }) {
+  const videoRef = useRef(null);
+  const codeReader = useRef(null);
+
   useEffect(() => {
-    const html5QrCode = new Html5Qrcode("reader");
-    let isScanned = false;
+    codeReader.current = new BrowserMultiFormatReader();
 
     const startScanner = async () => {
       try {
-        const devices = await Html5Qrcode.getCameras();
-        const rearCamera = devices.find((d) =>
-          d.label.toLowerCase().includes("back")
-        ) || devices[0];
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputDevices = devices.filter(device => device.kind === "videoinput");
+        const backCamera = videoInputDevices.find(device =>
+          device.label.toLowerCase().includes("back")
+        ) || videoInputDevices[0]; // fallback
 
-        await html5QrCode.start(
-          rearCamera.id,
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          async (decodedText) => {
-            if (isScanned) return;
-            isScanned = true;
-
-            console.log("✅ 스캔 성공:", decodedText);
-
-            // 1️⃣ UI 변경은 최소 0.5초 후 실행
-            setTimeout(() => {
-              onDetected(decodedText); // 상태 변경은 외부에서
-            }, 500);
-
-            // 2️⃣ 스캐너는 1초 뒤 종료 (충돌 방지)
-            setTimeout(async () => {
-              try {
-                await html5QrCode.stop();
-              } catch (e) {
-                console.warn("❌ 스캐너 중지 실패", e);
-              }
-              document.getElementById("reader").innerHTML = "";
-            }, 1000);
-          },
-          () => {}
+        await codeReader.current.decodeFromVideoDevice(
+          backCamera.deviceId,
+          videoRef.current,
+          (result, err) => {
+            if (result) {
+              onDetected(result.getText());
+              codeReader.current.reset();
+            }
+          }
         );
-      } catch (e) {
-        console.error("❌ 카메라 시작 실패:", e);
+      } catch (err) {
+        console.error("카메라 접근 실패:", err);
+        onClose();
       }
     };
 
     startScanner();
 
     return () => {
-      html5QrCode.stop().catch(() => {});
+      codeReader.current?.reset();
     };
-  }, [onDetected]);
+  }, [onDetected, onClose]);
 
   return (
     <div
-      id="reader"
-      style={{
-        width: "100%",
-        maxWidth: "400px",
-        margin: "auto",
-        aspectRatio: "1 / 1",
-      }}
-    />
+      className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md aspect-video bg-black overflow-hidden rounded"
+        onClick={(e) => e.stopPropagation()} // 모달 닫기 방지
+      >
+        <video
+          ref={videoRef}
+          className="w-full h-full object-cover"
+          autoPlay
+          muted
+          playsInline
+        />
+        <div className="absolute inset-0 border-4 border-green-500 pointer-events-none" />
+        <button
+          className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded text-sm"
+          onClick={onClose}
+        >
+          닫기
+        </button>
+      </div>
+    </div>
   );
 }
