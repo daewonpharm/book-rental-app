@@ -96,10 +96,11 @@ export default function Return() {
       {scanning && (
 <BarcodeScanner
   onDetected={(code) => {
+    // 딜레이를 줘서 상태 변경 타이밍 충돌 방지
     setTimeout(() => {
       setBookCode(code);
       setScanning(false);
-    }, 100); // 너무 빠르게 setState 하면 문제 생김
+    }, 800);
           }}
         />
       )}

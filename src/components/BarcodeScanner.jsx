@@ -10,11 +10,8 @@ export default function BarcodeScanner({ onDetected }) {
     const startScanner = async () => {
       try {
         const devices = await Html5Qrcode.getCameras();
-
-        const rearCamera = devices.find(
-          (d) =>
-            d.label.toLowerCase().includes("back") ||
-            d.label.includes("후면")
+        const rearCamera = devices.find((d) =>
+          d.label.toLowerCase().includes("back")
         ) || devices[0];
 
         await html5QrCode.start(
@@ -26,16 +23,20 @@ export default function BarcodeScanner({ onDetected }) {
 
             console.log("✅ 스캔 성공:", decodedText);
 
-            // 1️⃣ 0.5초 뒤에 종료 → 충돌 방지
+            // 1️⃣ UI 변경은 최소 0.5초 후 실행
+            setTimeout(() => {
+              onDetected(decodedText); // 상태 변경은 외부에서
+            }, 500);
+
+            // 2️⃣ 스캐너는 1초 뒤 종료 (충돌 방지)
             setTimeout(async () => {
               try {
                 await html5QrCode.stop();
               } catch (e) {
-                console.warn("❌ 스캐너 종료 중 오류:", e);
+                console.warn("❌ 스캐너 중지 실패", e);
               }
               document.getElementById("reader").innerHTML = "";
-              onDetected(decodedText); // 2️⃣ 종료 이후 전달
-            }, 500);
+            }, 1000);
           },
           () => {}
         );
