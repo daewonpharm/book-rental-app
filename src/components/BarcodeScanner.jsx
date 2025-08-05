@@ -6,7 +6,7 @@ export default function BarcodeScanner({ onDetected }) {
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("reader");
 
-    let isCancelled = false;
+    let isScanned = false;
 
     const startScanner = async () => {
       try {
@@ -17,12 +17,11 @@ export default function BarcodeScanner({ onDetected }) {
           return;
         }
 
-        // ✅ 후면 카메라 찾기: label에 'back' 또는 '후면'이 포함된 카메라 선택
         const rearCamera = devices.find(
           (d) =>
             d.label.toLowerCase().includes("back") ||
             d.label.includes("후면")
-        ) || devices[0]; // 없으면 첫 번째 카메라
+        ) || devices[0];
 
         await html5QrCode.start(
           rearCamera.id,
@@ -30,18 +29,17 @@ export default function BarcodeScanner({ onDetected }) {
             fps: 10,
             qrbox: { width: 250, height: 250 },
           },
-          (decodedText) => {
-            if (isCancelled) return;
+          async (decodedText) => {
+            if (isScanned) return;
+            isScanned = true;
 
-            onDetected(decodedText); // ✅ 도서 코드 전달
-            isCancelled = true;
+            await html5QrCode.stop(); // ✅ 먼저 스캔 중단
+            document.getElementById("reader").innerHTML = ""; // ✅ 카메라 뷰 제거
 
-            html5QrCode.stop().then(() => {
-              console.log("스캐너 종료");
-            });
+            onDetected(decodedText); // ✅ 상태 업데이트는 그 다음
           },
           (errorMessage) => {
-            // console.warn("스캔 실패", errorMessage); // 필요시 로그
+            // 필요시 무시
           }
         );
       } catch (err) {
@@ -52,7 +50,6 @@ export default function BarcodeScanner({ onDetected }) {
     startScanner();
 
     return () => {
-      isCancelled = true;
       html5QrCode.stop().catch(() => {});
     };
   }, [onDetected]);

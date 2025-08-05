@@ -96,9 +96,9 @@ export default function Return() {
       {scanning && (
 <BarcodeScanner
   onDetected={(code) => {
-    console.log("✅ 스캔된 코드:", code);
-    setBookCode(code);       // ✅ 코드 입력
-    setScanning(false);      // ✅ 스캔창 종료
+    console.log("✅ 바코드 인식됨:", code);
+    setBookCode(code);        // 1. 코드 입력
+    setScanning(false);       // 2. 스캐너 종료 (렌더링 트리거)
           }}
         />
       )}
