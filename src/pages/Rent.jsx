@@ -65,9 +65,9 @@ export default function Rent() {
 
       <button
         className="bg-gray-200 px-4 py-2 rounded"
-        onClick={() => setScanning(true)}
+        onClick={() => setScanning(!scanning)}
       >
-        📷 바코드 스캔
+        {scanning ? "📷 스캔 중지" : "📷 바코드 스캔"}
       </button>
 
       {scanning && (

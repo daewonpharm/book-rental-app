@@ -1,68 +1,42 @@
 import React, { useEffect, useRef } from "react";
-import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library";
+import { BrowserMultiFormatReader } from "@zxing/library";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
-  const streamRef = useRef(null);
-  const scanningRef = useRef(true); // 중복 인식 방지
 
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
 
     const startScanner = async () => {
       try {
-        const constraints = {
-          video: {
-            facingMode: { exact: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-        };
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter((d) => d.kind === "videoinput");
+        const backCamera =
+          videoDevices.find((d) =>
+            d.label.toLowerCase().includes("back")
+          ) || videoDevices[0];
 
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        streamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", true);
-          videoRef.current.play();
-        }
-
-        codeReader.current.decodeFromVideoElement(videoRef.current, (result, err) => {
-          if (!scanningRef.current) return;
-
-          if (result) {
-            scanningRef.current = false; // 인식 중복 방지
-            console.log("✅ 바코드 인식:", result.getText());
-
-            // 앱 상태 충돌 방지를 위해 지연 처리
-            setTimeout(() => {
+        await codeReader.current.decodeFromVideoDevice(
+          backCamera.deviceId,
+          videoRef.current,
+          (result, err) => {
+            if (result) {
               onDetected(result.getText());
-              stopScanner();
-            }, 100);
-          } else if (err && !(err instanceof NotFoundException)) {
-            console.error("📛 ZXing Error:", err);
+              codeReader.current.reset();
+            }
           }
-        });
-      } catch (err) {
-        console.error("❌ 카메라 접근 오류:", err);
+        );
+      } catch (error) {
+        console.error("❌ 카메라 오류:", error);
         onClose();
-      }
-    };
-
-    const stopScanner = () => {
-      codeReader.current?.reset();
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
 
     startScanner();
 
     return () => {
-      scanningRef.current = false;
-      stopScanner();
+      codeReader.current?.reset();
     };
   }, [onDetected, onClose]);
 
@@ -73,7 +47,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     >
       <div
         className="relative w-full max-w-md aspect-video bg-black overflow-hidden rounded"
-        onClick={(e) => e.stopPropagation()} // 모달 닫기 방지
+        onClick={(e) => e.stopPropagation()}
       >
         <video
           ref={videoRef}

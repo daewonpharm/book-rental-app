@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { db } from "../firebase";
 import {
   doc,
-  updateDoc,
   getDoc,
+  updateDoc,
   Timestamp,
   collection,
   query,
@@ -11,7 +11,6 @@ import {
   orderBy,
   limit,
   getDocs,
-  updateDoc as updateLog,
 } from "firebase/firestore";
 import BarcodeScanner from "../components/BarcodeScanner";
 
@@ -49,7 +48,6 @@ export default function Return() {
       avgRating: parseFloat(avgRating.toFixed(2)),
     });
 
-    // rentLogs 업데이트
     const logsRef = collection(db, "rentLogs");
     const q = query(
       logsRef,
@@ -63,7 +61,7 @@ export default function Return() {
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
       const logDoc = snapshot.docs[0];
-      await updateLog(logDoc.ref, {
+      await updateDoc(logDoc.ref, {
         returnedAt: Timestamp.now(),
       });
     }
@@ -81,9 +79,9 @@ export default function Return() {
 
       <button
         className="bg-gray-200 px-4 py-2 rounded"
-        onClick={() => setScanning(true)}
+        onClick={() => setScanning(!scanning)}
       >
-        📷 바코드 스캔
+        {scanning ? "📷 스캔 중지" : "📷 바코드 스캔"}
       </button>
 
       {scanning && (
