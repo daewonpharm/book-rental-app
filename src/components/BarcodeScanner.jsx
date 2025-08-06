@@ -13,28 +13,30 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter((d) => d.kind === "videoinput");
 
-        // ✅ 후면 카메라 우선
+        // ✅ 항상 후면카메라 우선 선택
         const backCamera =
           videoDevices.find((d) =>
             d.label.toLowerCase().includes("back")
           ) || videoDevices[0];
 
+        // ✅ 명시적으로 후면 카메라 deviceId 사용
         await codeReader.current.decodeFromVideoDevice(
           backCamera.deviceId,
           videoRef.current,
           (result, err) => {
             if (result) {
-              const code = result.getText().toLowerCase(); // ✅ 소문자 처리
-              console.log("✅ 인식:", code);
+              const code = result.getText().toLowerCase(); // 소문자 변환
+              console.log("✅ 바코드 인식:", code);
               onDetected(code);
+
               setTimeout(() => {
                 codeReader.current?.reset();
-              }, 100); // ✅ 지연 후 reset
+              }, 200); // 지연 후 reset
             }
           }
         );
-      } catch (error) {
-        console.error("❌ 카메라 오류:", error);
+      } catch (err) {
+        console.error("❌ 카메라 접근 오류:", err);
         onClose();
       }
     };
