@@ -98,15 +98,13 @@ export default function BookList() {
             {filtered.map((book) => (
               <tr key={book.id} className="border-t">
                 <td
-                  className={`px-4 py-2 ${
-                    book.title === "미키7"
-                      ? "cursor-pointer text-blue-600 hover:underline"
-                      : ""
-                  }`}
+                  className="px-4 py-2"
                   onClick={() => {
                     if (book.title === "미키7") {
-                      localStorage.setItem("adminAccess", "true"); // ✅ 접근권한 저장
-                      navigate("/admin");
+                      localStorage.setItem("adminAccess", "true");
+                      setTimeout(() => {
+                        navigate("/admin");
+                      }, 50);
                     }
                   }}
                 >
