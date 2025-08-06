@@ -50,7 +50,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* 안내 문구 */}
-        <div className="absolute top-2 left-2 right-2 text-sm text-yellow-300 bg-black/70 p-1 px-2 rounded">
+<div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm text-yellow-300 bg-black/70 p-1 px-3 rounded">
           ⚠️ iOS에서는 두 번째 스캔부터 전면 카메라가 사용될 수 있어요. 작동이 안 되면 새로고침 해주세요.
         </div>
 
