@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
-import { BrowserMultiFormatReader } from "@zxing/library";
+import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
+  const streamRef = useRef(null);
   const codeReader = useRef(null);
 
   useEffect(() => {
@@ -10,42 +11,47 @@ export default function BarcodeScanner({ onDetected, onClose }) {
 
     const startScanner = async () => {
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter((d) => d.kind === "videoinput");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { exact: "environment" }, // ✅ 후면 카메라 직접 지정
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
 
-        // ✅ 항상 후면카메라 우선 선택
-        const backCamera =
-          videoDevices.find((d) =>
-            d.label.toLowerCase().includes("back")
-          ) || videoDevices[0];
+        streamRef.current = stream;
 
-        // ✅ 명시적으로 후면 카메라 deviceId 사용
-        await codeReader.current.decodeFromVideoDevice(
-          backCamera.deviceId,
-          videoRef.current,
-          (result, err) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute("playsinline", true);
+          await videoRef.current.play();
+
+          codeReader.current.decodeFromVideoElement(videoRef.current, (result, err) => {
             if (result) {
-              const code = result.getText().toLowerCase(); // 소문자 변환
+              const code = result.getText().toLowerCase(); // ✅ 소문자 처리
               console.log("✅ 바코드 인식:", code);
               onDetected(code);
-
-              setTimeout(() => {
-                codeReader.current?.reset();
-              }, 200); // 지연 후 reset
+              stopScanner();
+            } else if (err && !(err instanceof NotFoundException)) {
+              console.error("📛 바코드 인식 오류:", err);
             }
-          }
-        );
+          });
+        }
       } catch (err) {
         console.error("❌ 카메라 접근 오류:", err);
         onClose();
       }
     };
 
-    startScanner();
-
-    return () => {
+    const stopScanner = () => {
       codeReader.current?.reset();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
+
+    startScanner();
+    return () => stopScanner();
   }, [onDetected, onClose]);
 
   return (
