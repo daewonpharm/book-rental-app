@@ -6,7 +6,6 @@ import Return from "./pages/Return";
 import Admin from "./pages/Admin";
 import BookList from "./pages/BookList";
 import NotFound from "./pages/NotFound";
-import AdminGate from "./pages/AdminGate";
 
 function App() {
   return (
@@ -17,11 +16,14 @@ function App() {
           <Route path="/" element={<BookList />} />
           <Route path="/rent" element={<Rent />} />
           <Route path="/return" element={<Return />} />
-          <Route path="/admin-gate" element={<AdminGate />} />
           <Route
             path="/admin"
             element={
-              localStorage.getItem("adminAccess") === "true" ? <Admin /> : <NotFound />
+              localStorage.getItem("adminAccess") === "true" ? (
+                <Admin />
+              ) : (
+                <NotFound />
+              )
             }
           />
           <Route path="*" element={<NotFound />} />
@@ -33,6 +35,7 @@ function App() {
 
 function Navigation() {
   const location = useLocation();
+
   const menuItems = [
     { path: "/", label: "도서목록" },
     { path: "/rent", label: "대여" },
@@ -47,9 +50,8 @@ function Navigation() {
           <Link
             key={path}
             to={path}
-            className={`px-4 py-2 rounded font-bold text-white text-center ${
-              isActive ? "bg-blue-800" : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            className={`px-4 py-2 rounded font-bold text-white text-center
+              ${isActive ? "bg-blue-800" : "bg-blue-600 hover:bg-blue-700"}`}
           >
             {label}
           </Link>

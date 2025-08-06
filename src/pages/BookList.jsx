@@ -35,6 +35,16 @@ export default function BookList() {
     fetchTop();
   }, []);
 
+  const handleMickeyClick = () => {
+    const pw = prompt("🔐 관리자 비밀번호를 입력하세요");
+    if (pw === "70687068") {
+      localStorage.setItem("adminAccess", "true");
+      navigate("/admin");
+    } else {
+      alert("❌ 비밀번호가 틀렸습니다.");
+    }
+  };
+
   const filtered = books
     .filter((book) =>
       book.title?.toLowerCase().includes(search.toLowerCase())
@@ -99,14 +109,13 @@ export default function BookList() {
             {filtered.map((book) => (
               <tr key={book.id} className="border-t">
                 <td
-                  className={`px-4 py-2 ${
-                    book.title === "미키7" ? "cursor-pointer text-blue-600 hover:underline" : ""
-                  }`}
+                  className="px-4 py-2"
                   onClick={() => {
                     if (book.title === "미키7") {
-                      navigate("/admin-gate");
+                      handleMickeyClick();
                     }
                   }}
+                  style={{ cursor: book.title === "미키7" ? "pointer" : "default" }}
                 >
                   {book.title}
                 </td>
@@ -143,9 +152,15 @@ export default function BookList() {
           <tbody>
             {topTitles.map(([title, count], idx) => (
               <tr key={idx}>
-                <td className="border px-4 py-2 font-bold text-blue-600">{idx + 1}</td>
-                <td className="border px-4 py-2 whitespace-nowrap text-sm">{title}</td>
-                <td className="border px-4 py-2 text-center text-gray-700">{count}회</td>
+                <td className="border px-4 py-2 font-bold text-blue-600">
+                  {idx + 1}
+                </td>
+                <td className="border px-4 py-2 whitespace-nowrap text-sm">
+                  {title}
+                </td>
+                <td className="border px-4 py-2 text-center text-gray-700">
+                  {count}회
+                </td>
               </tr>
             ))}
           </tbody>
