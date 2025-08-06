@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from "react";
-import { BrowserMultiFormatReader } from "@zxing/library";
+import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
-  const streamRef = useRef(null); // 🔁 stream을 따로 저장해 해제
+  const streamRef = useRef(null);
 
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
@@ -13,9 +13,10 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       try {
         const constraints = {
           video: {
-            facingMode: { exact: "environment" } // ✅ 후면 카메라 명시
+            facingMode: { exact: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
           },
-          audio: false,
         };
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -23,32 +24,35 @@ export default function BarcodeScanner({ onDetected, onClose }) {
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", true); // iOS 대응
+          videoRef.current.setAttribute("playsinline", true);
           videoRef.current.play();
         }
 
         codeReader.current.decodeFromVideoElement(videoRef.current, (result, err) => {
           if (result) {
+            console.log("✅ Barcode Detected:", result.getText());
             onDetected(result.getText());
-            stopScanner(); // 🔁 스캔 성공 시 스캔 종료
+            stopScanner(); // Stop scanning after detection
+          } else if (err && !(err instanceof NotFoundException)) {
+            console.error("📛 ZXing Error:", err);
           }
         });
       } catch (err) {
-        console.error("📷 카메라 접근 오류:", err);
+        console.error("❌ 카메라 접근 오류:", err);
         onClose();
       }
     };
 
     const stopScanner = () => {
       codeReader.current?.reset();
-      streamRef.current?.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
 
     startScanner();
 
-    return () => {
-      stopScanner();
-    };
+    return () => stopScanner();
   }, [onDetected, onClose]);
 
   return (
@@ -58,7 +62,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     >
       <div
         className="relative w-full max-w-md aspect-video bg-black overflow-hidden rounded"
-        onClick={(e) => e.stopPropagation()} // 모달 닫기 방지
+        onClick={(e) => e.stopPropagation()}
       >
         <video
           ref={videoRef}
