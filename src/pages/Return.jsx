@@ -36,12 +36,6 @@ export default function Return() {
     }
 
     const bookData = bookSnap.data();
-
-    if (bookData.rentedBy !== employeeId) {
-      alert("이 도서는 다른 사번으로 대여되었습니다.");
-      return;
-    }
-
     const updatedStars = [...(bookData.stars || []), rating];
     const avgRating =
       updatedStars.reduce((sum, val) => sum + val, 0) / updatedStars.length;
@@ -55,6 +49,7 @@ export default function Return() {
       avgRating: parseFloat(avgRating.toFixed(2)),
     });
 
+    // rentLogs 업데이트
     const logsRef = collection(db, "rentLogs");
     const q = query(
       logsRef,

@@ -5,6 +5,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
   const streamRef = useRef(null);
+  const scanningRef = useRef(true); // 중복 인식 방지
 
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
@@ -29,10 +30,17 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         }
 
         codeReader.current.decodeFromVideoElement(videoRef.current, (result, err) => {
+          if (!scanningRef.current) return;
+
           if (result) {
-            console.log("✅ Barcode Detected:", result.getText());
-            onDetected(result.getText());
-            stopScanner(); // Stop scanning after detection
+            scanningRef.current = false; // 인식 중복 방지
+            console.log("✅ 바코드 인식:", result.getText());
+
+            // 앱 상태 충돌 방지를 위해 지연 처리
+            setTimeout(() => {
+              onDetected(result.getText());
+              stopScanner();
+            }, 100);
           } else if (err && !(err instanceof NotFoundException)) {
             console.error("📛 ZXing Error:", err);
           }
@@ -52,7 +60,10 @@ export default function BarcodeScanner({ onDetected, onClose }) {
 
     startScanner();
 
-    return () => stopScanner();
+    return () => {
+      scanningRef.current = false;
+      stopScanner();
+    };
   }, [onDetected, onClose]);
 
   return (
@@ -62,7 +73,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     >
       <div
         className="relative w-full max-w-md aspect-video bg-black overflow-hidden rounded"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()} // 모달 닫기 방지
       >
         <video
           ref={videoRef}
