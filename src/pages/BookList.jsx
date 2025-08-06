@@ -98,7 +98,7 @@ export default function BookList() {
             {filtered.map((book) => (
               <tr key={book.id} className="border-t">
                 <td
-                  className="px-4 py-2"
+                  className="px-4 py-2 cursor-pointer"
                   onClick={() => {
                     if (book.title === "미키7") {
                       localStorage.setItem("adminAccess", "true");
@@ -137,7 +137,7 @@ export default function BookList() {
             <tr className="bg-gray-100">
               <th className="border px-4 py-2 w-[120px]">순위</th>
               <th className="border px-4 py-2 w-[320px]">제목</th>
-              <th className="border px-4 py-2 w-[120px]">횟수</th>
+              <th className="border px-4 py-2 w-[120px]">회수</th>
             </tr>
           </thead>
           <tbody>
