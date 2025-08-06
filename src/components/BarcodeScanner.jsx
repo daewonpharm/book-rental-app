@@ -22,7 +22,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
           videoRef.current,
           (result, err) => {
             if (result) {
-              onDetected(result.getText().toLowerCase()); // ✅ 대소문자 통일
+              onDetected(result.getText().toLowerCase()); // 소문자 처리
               codeReader.current.reset();
             }
           }
@@ -49,6 +49,11 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         className="relative w-full max-w-md aspect-video bg-black overflow-hidden rounded"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* 안내 문구 */}
+        <div className="absolute top-2 left-2 right-2 text-sm text-yellow-300 bg-black/70 p-1 px-2 rounded">
+          ⚠️ iOS에서는 두 번째 스캔부터 전면 카메라가 사용될 수 있어요. 작동이 안 되면 새로고침 해주세요.
+        </div>
+
         <video
           ref={videoRef}
           className="w-full h-full object-cover"

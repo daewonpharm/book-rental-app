@@ -10,6 +10,9 @@ export default function BookList() {
   const [topTitles, setTopTitles] = useState([]);
 
   useEffect(() => {
+    // 다크모드 해제
+    document.documentElement.classList.remove("dark");
+
     const fetchBooks = async () => {
       const snapshot = await getDocs(collection(db, "books"));
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -51,7 +54,7 @@ export default function BookList() {
   };
 
   return (
-    <div className="p-4 flex flex-col lg:flex-row items-start gap-6">
+    <div className="p-4 flex flex-col lg:flex-row items-start gap-6 max-w-full overflow-x-hidden">
       {/* 📚 도서 목록 테이블 */}
       <div className="w-full lg:w-2/3">
         <h2 className="text-xl font-bold mb-4">📚 도서 목록</h2>
@@ -82,60 +85,68 @@ export default function BookList() {
           </label>
         </div>
 
-        <table className="w-full table-auto border-collapse border text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-left">
-              <th className="border px-4 py-2">제목</th>
-              <th className="border px-4 py-2 w-[140px]">상태</th>
-              <th className="border px-4 py-2 w-[160px]">반납 예정일</th>
-              <th className="border px-4 py-2 w-[140px]">평균 별점</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((book) => (
-              <tr key={book.id} className="border-t">
-                <td className="px-4 py-2">{book.title}</td>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  {book.available === false ? (
-                    <span className="text-red-500 font-semibold">❌ 대출 중</span>
-                  ) : (
-                    <span className="text-green-600 font-semibold">✅ 대출 가능</span>
-                  )}
-                </td>
-                <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
-                  {getDueDate(book)}
-                </td>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  {book.avgRating ? `⭐ ${book.avgRating.toFixed(2)}` : "–"}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full table-auto border-collapse border text-sm">
+            <thead>
+              <tr className="bg-gray-100 text-left">
+                <th className="border px-4 py-2 min-w-[120px]">제목</th>
+                <th className="border px-4 py-2 min-w-[100px]">상태</th>
+                <th className="border px-4 py-2 min-w-[120px]">반납 예정일</th>
+                <th className="border px-4 py-2 min-w-[100px]">평균 별점</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((book) => (
+                <tr key={book.id} className="border-t">
+                  <td className="px-4 py-2">{book.title}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {book.available === false ? (
+                      <span className="text-red-500 font-semibold">❌ 대출 중</span>
+                    ) : (
+                      <span className="text-green-600 font-semibold">✅ 대출 가능</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
+                    {getDueDate(book)}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {book.avgRating ? `⭐ ${book.avgRating.toFixed(2)}` : "–"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* 🔥 인기 대여 TOP 5 */}
-<div className="w-full lg:w-1/3 lg:sticky lg:top-4 h-fit mt-[66px]">
-  <h3 className="text-lg font-semibold mb-2">🔥 인기 대여 TOP 5</h3>
-  <table className="table-auto w-full border-collapse border text-sm">
-    <thead>
-      <tr className="bg-gray-100">
-        <th className="border px-4 py-2 w-[120px]">순위</th>
-        <th className="border px-4 py-2 w-[320px]">제목</th>
-        <th className="border px-4 py-2 w-[120px]">횟수</th>
-      </tr>
-    </thead>
-    <tbody>
-      {topTitles.map(([title, count], idx) => (
-        <tr key={idx}>
-          <td className="border px-4 py-2 font-bold text-blue-600">{idx + 1}</td>
-          <td className="border px-4 py-2 whitespace-nowrap text-sm">{title}</td>
-          <td className="border px-4 py-2 text-center text-gray-700">{count}회</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+      <div className="w-full lg:w-1/3 lg:sticky lg:top-4 h-fit mt-[66px]">
+        <h3 className="text-lg font-semibold mb-2">🔥 인기 대여 TOP 5</h3>
+        <div className="overflow-x-auto">
+          <table className="table-auto w-full border-collapse border text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-4 py-2 w-[100px]">순위</th>
+                <th className="border px-4 py-2 min-w-[180px]">제목</th>
+                <th className="border px-4 py-2 w-[100px]">횟수</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topTitles.map(([title, count], idx) => (
+                <tr key={idx}>
+                  <td className="border px-4 py-2 font-bold text-blue-600">
+                    {idx + 1}
+                  </td>
+                  <td className="border px-4 py-2 text-sm">{title}</td>
+                  <td className="border px-4 py-2 text-center text-gray-700">
+                    {count}회
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
