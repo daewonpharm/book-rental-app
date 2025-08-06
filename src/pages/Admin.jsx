@@ -19,7 +19,6 @@ export default function Admin() {
   const [authorized, setAuthorized] = useState(false);
   const correctPassword = "70687068"; // ✅ 원하는 비밀번호 설정
 
-  // 🔐 비밀번호 확인 후 인증
   const handleAccess = () => {
     if (input === correctPassword) {
       setAuthorized(true);
@@ -28,7 +27,6 @@ export default function Admin() {
     }
   };
 
-  // 🔒 비밀번호 인증 UI
   if (!authorized) {
     return (
       <div className="space-y-4 max-w-sm mx-auto mt-10">
@@ -50,7 +48,6 @@ export default function Admin() {
     );
   }
 
-  // ✅ 인증 성공 시 관리자 페이지 표시
   const fetchBooks = async () => {
     const booksRef = collection(db, "books");
     const snapshot = await getDocs(booksRef);
@@ -105,23 +102,27 @@ export default function Admin() {
     fetchLogs();
   }, []);
 
-  const topBooks = Object.entries(
-    logs.reduce((acc, log) => {
-      acc[log.title] = (acc[log.title] || 0) + 1;
-      return acc;
-    }, {})
-  )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const topBooks = logs?.length
+    ? Object.entries(
+        logs.reduce((acc, log) => {
+          acc[log.title] = (acc[log.title] || 0) + 1;
+          return acc;
+        }, {})
+      )
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+    : [];
 
-  const topUsers = Object.entries(
-    logs.reduce((acc, log) => {
-      acc[log.rentedBy] = (acc[log.rentedBy] || 0) + 1;
-      return acc;
-    }, {})
-  )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const topUsers = logs?.length
+    ? Object.entries(
+        logs.reduce((acc, log) => {
+          acc[log.rentedBy] = (acc[log.rentedBy] || 0) + 1;
+          return acc;
+        }, {})
+      )
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+    : [];
 
   return (
     <div className="p-4">
@@ -147,41 +148,57 @@ export default function Admin() {
             </tr>
           </thead>
           <tbody>
-            {logs.map((log) => (
-              <tr key={log.id}>
-                <td className="border px-4 py-2">{log.rentedBy}</td>
-                <td className="border px-4 py-2">{log.title}</td>
-                <td className="border px-4 py-2">{formatDate(log.rentedAt)}</td>
-                <td className="border px-4 py-2">
-                  {log.returnedAt ? formatDate(log.returnedAt) : "–"}
+            {logs?.length > 0 ? (
+              logs.map((log) => (
+                <tr key={log.id}>
+                  <td className="border px-4 py-2">{log.rentedBy}</td>
+                  <td className="border px-4 py-2">{log.title}</td>
+                  <td className="border px-4 py-2">{formatDate(log.rentedAt)}</td>
+                  <td className="border px-4 py-2">
+                    {log.returnedAt ? formatDate(log.returnedAt) : "–"}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="4" className="text-center text-gray-400 py-4">
+                  로딩 중이거나 데이터가 없습니다.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* 🔝 가장 인기 있는 책 Top 5 */}
+      {/* 🔝 인기 책 Top 5 */}
       <div className="mb-12">
         <h3 className="text-lg font-semibold mb-2">📚 가장 인기 있는 책 Top 5</h3>
         <ul className="list-disc pl-5 text-sm">
-          {topBooks.map(([title, count], i) => (
-            <li key={i}>
-              <strong>{title}</strong> - {count}회 대여
-            </li>
-          ))}
+          {topBooks.length > 0 ? (
+            topBooks.map(([title, count], i) => (
+              <li key={i}>
+                <strong>{title}</strong> - {count}회 대여
+              </li>
+            ))
+          ) : (
+            <li className="text-gray-500">데이터가 없습니다.</li>
+          )}
         </ul>
       </div>
 
-      {/* 👤 가장 많이 빌린 사람 Top 5 */}
+      {/* 👤 인기 대여자 Top 5 */}
       <div className="mb-12">
         <h3 className="text-lg font-semibold mb-2">👤 대여를 가장 많이 한 사번 Top 5</h3>
         <ul className="list-disc pl-5 text-sm">
-          {topUsers.map(([user, count], i) => (
-            <li key={i}>
-              <strong>{user}</strong> - {count}회 대여
-            </li>
-          ))}
+          {topUsers.length > 0 ? (
+            topUsers.map(([user, count], i) => (
+              <li key={i}>
+                <strong>{user}</strong> - {count}회 대여
+              </li>
+            ))
+          ) : (
+            <li className="text-gray-500">데이터가 없습니다.</li>
+          )}
         </ul>
       </div>
     </div>
