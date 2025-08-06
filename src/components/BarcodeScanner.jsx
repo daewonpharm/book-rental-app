@@ -1,30 +1,38 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/library";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
+  const [backCameraId, setBackCameraId] = useState(null); // ✅ 카메라 ID 저장
 
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
 
     const startScanner = async () => {
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter((d) => d.kind === "videoinput");
+        let deviceId = backCameraId;
 
-        const backCamera =
-          videoDevices.find((d) =>
-            d.label.toLowerCase().includes("back")
-          ) || videoDevices[0]; // fallback
+        if (!deviceId) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter((d) => d.kind === "videoinput");
+
+          const backCam =
+            videoDevices.find((d) =>
+              d.label.toLowerCase().includes("back")
+            ) || videoDevices[0]; // fallback
+
+          deviceId = backCam.deviceId;
+          setBackCameraId(deviceId); // ✅ 저장
+        }
 
         await codeReader.current.decodeFromVideoDevice(
-          backCamera.deviceId,
+          deviceId,
           videoRef.current,
           (result, err) => {
             if (result) {
-              codeReader.current.reset(); // ✅ 먹통 방지용 reset
-              onDetected(result.getText().toLowerCase()); // ✅ 소문자로 변환
+              codeReader.current.reset();
+              onDetected(result.getText().toLowerCase()); // ✅ 소문자 처리
             }
           }
         );
@@ -37,9 +45,9 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     startScanner();
 
     return () => {
-      codeReader.current?.reset(); // ✅ unmount 시에도 종료
+      codeReader.current?.reset();
     };
-  }, [onDetected, onClose]);
+  }, [onDetected, onClose, backCameraId]); // ✅ backCameraId 의존성 추가
 
   return (
     <div
