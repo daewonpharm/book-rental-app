@@ -130,7 +130,7 @@ export default function BookList() {
                   {getDueDate(book)}
                 </td>
                 <td className="px-4 py-2 whitespace-nowrap">
-                  {book.avgRating ? `⭐ ${book.avgRating.toFixed(2)}` : "–"}
+                  {book.avgRating ? `⭐ ${book.avgRating.toFixed(1)}` : "–"}
                 </td>
               </tr>
             ))}
