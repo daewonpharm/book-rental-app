@@ -17,6 +17,7 @@ import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function Return() {
   const [bookCode, setBookCode] = useState("");
+  const [bookTitle, setBookTitle] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [rating, setRating] = useState(5);
   const [scanning, setScanning] = useState(false);
@@ -40,7 +41,6 @@ export default function Return() {
     const avgRating =
       updatedStars.reduce((sum, val) => sum + val, 0) / updatedStars.length;
 
-    // 책 상태 업데이트
     await updateDoc(bookRef, {
       available: true,
       rentedBy: null,
@@ -50,7 +50,6 @@ export default function Return() {
       avgRating: parseFloat(avgRating.toFixed(2)),
     });
 
-    // rentLogs 업데이트
     const logsRef = collection(db, "rentLogs");
     const q = query(
       logsRef,
@@ -71,8 +70,24 @@ export default function Return() {
 
     alert("도서가 반납되었습니다. 감사합니다!");
     setBookCode("");
+    setBookTitle("");
     setEmployeeId("");
     setRating(5);
+  };
+
+  const handleDetected = async (code) => {
+    const normalizedCode = code.toLowerCase();
+    const bookRef = doc(db, "books", normalizedCode);
+    const bookSnap = await getDoc(bookRef);
+
+    if (bookSnap.exists()) {
+      const data = bookSnap.data();
+      setBookCode(normalizedCode); // 내부 사용
+      setBookTitle(data.title);    // 사용자에게만 표시
+    } else {
+      alert("해당 도서를 찾을 수 없습니다.");
+    }
+    setScanning(false);
   };
 
   return (
@@ -88,20 +103,18 @@ export default function Return() {
 
       {scanning && (
         <BarcodeScanner
-          onDetected={(code) => {
-            setBookCode(code.toLowerCase());
-            setScanning(false);
-          }}
+          onDetected={handleDetected}
           onClose={() => setScanning(false)}
         />
       )}
 
+      {/* 책 제목만 표시 */}
       <input
         type="text"
-        placeholder="도서 코드 (예: dw0001)"
-        value={bookCode}
-        onChange={(e) => setBookCode(e.target.value)}
-        className="border p-2 w-full"
+        value={bookTitle}
+        readOnly
+        placeholder="도서 제목 (스캔 시 자동 표시)"
+        className="border p-2 w-full bg-gray-100 text-gray-700 cursor-not-allowed"
       />
 
       <input
