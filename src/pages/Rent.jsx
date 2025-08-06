@@ -49,7 +49,6 @@ export default function Rent() {
     alert("도서가 대여되었습니다.");
     setBookCode("");
     setEmployeeId("");
-    setScanning(false);
   };
 
   return (
@@ -58,15 +57,15 @@ export default function Rent() {
 
       <button
         className="bg-gray-200 px-4 py-2 rounded"
-        onClick={() => setScanning(!scanning)}
+        onClick={() => setScanning(true)}
       >
-        {scanning ? "📷 스캔 중지" : "📷 바코드 스캔"}
+        📷 바코드 스캔
       </button>
 
       {scanning && (
         <BarcodeScanner
           onDetected={(code) => {
-            setBookCode(code.toLowerCase()); // ✅ 소문자 변환
+            setBookCode(code.toLowerCase());
             setScanning(false);
           }}
           onClose={() => setScanning(false)}

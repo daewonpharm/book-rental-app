@@ -40,6 +40,7 @@ export default function Return() {
     const avgRating =
       updatedStars.reduce((sum, val) => sum + val, 0) / updatedStars.length;
 
+    // 책 상태 업데이트
     await updateDoc(bookRef, {
       available: true,
       rentedBy: null,
@@ -49,6 +50,7 @@ export default function Return() {
       avgRating: parseFloat(avgRating.toFixed(2)),
     });
 
+    // rentLogs 업데이트
     const logsRef = collection(db, "rentLogs");
     const q = query(
       logsRef,
@@ -71,7 +73,6 @@ export default function Return() {
     setBookCode("");
     setEmployeeId("");
     setRating(5);
-    setScanning(false);
   };
 
   return (
@@ -80,15 +81,15 @@ export default function Return() {
 
       <button
         className="bg-gray-200 px-4 py-2 rounded"
-        onClick={() => setScanning(!scanning)}
+        onClick={() => setScanning(true)}
       >
-        {scanning ? "📷 스캔 중지" : "📷 바코드 스캔"}
+        📷 바코드 스캔
       </button>
 
       {scanning && (
         <BarcodeScanner
           onDetected={(code) => {
-            setBookCode(code.toLowerCase()); // ✅ 소문자 변환
+            setBookCode(code.toLowerCase());
             setScanning(false);
           }}
           onClose={() => setScanning(false)}
