@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
@@ -8,6 +9,8 @@ export default function BookList() {
   const [sortByRating, setSortByRating] = useState(false);
   const [filterAvailable, setFilterAvailable] = useState(false);
   const [topTitles, setTopTitles] = useState([]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -94,7 +97,21 @@ export default function BookList() {
           <tbody>
             {filtered.map((book) => (
               <tr key={book.id} className="border-t">
-                <td className="px-4 py-2">{book.title}</td>
+                <td
+                  className={`px-4 py-2 ${
+                    book.title === "미키7"
+                      ? "cursor-pointer text-blue-600 hover:underline"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    if (book.title === "미키7") {
+                      localStorage.setItem("adminAccess", "true"); // ✅ 접근권한 저장
+                      navigate("/admin");
+                    }
+                  }}
+                >
+                  {book.title}
+                </td>
                 <td className="px-4 py-2 whitespace-nowrap">
                   {book.available === false ? (
                     <span className="text-red-500 font-semibold">❌ 대출 중</span>
@@ -115,27 +132,33 @@ export default function BookList() {
       </div>
 
       {/* 🔥 인기 대여 TOP 5 */}
-<div className="w-full lg:w-1/3 lg:sticky lg:top-4 h-fit mt-[66px]">
-  <h3 className="text-lg font-semibold mb-2">🔥 인기 대여 TOP 5</h3>
-  <table className="table-auto w-full border-collapse border text-sm">
-    <thead>
-      <tr className="bg-gray-100">
-        <th className="border px-4 py-2 w-[120px]">순위</th>
-        <th className="border px-4 py-2 w-[320px]">제목</th>
-        <th className="border px-4 py-2 w-[120px]">횟수</th>
-      </tr>
-    </thead>
-    <tbody>
-      {topTitles.map(([title, count], idx) => (
-        <tr key={idx}>
-          <td className="border px-4 py-2 font-bold text-blue-600">{idx + 1}</td>
-          <td className="border px-4 py-2 whitespace-nowrap text-sm">{title}</td>
-          <td className="border px-4 py-2 text-center text-gray-700">{count}회</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+      <div className="w-full lg:w-1/3 lg:sticky lg:top-4 h-fit mt-[66px]">
+        <h3 className="text-lg font-semibold mb-2">🔥 인기 대여 TOP 5</h3>
+        <table className="table-auto w-full border-collapse border text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border px-4 py-2 w-[120px]">순위</th>
+              <th className="border px-4 py-2 w-[320px]">제목</th>
+              <th className="border px-4 py-2 w-[120px]">횟수</th>
+            </tr>
+          </thead>
+          <tbody>
+            {topTitles.map(([title, count], idx) => (
+              <tr key={idx}>
+                <td className="border px-4 py-2 font-bold text-blue-600">
+                  {idx + 1}
+                </td>
+                <td className="border px-4 py-2 whitespace-nowrap text-sm">
+                  {title}
+                </td>
+                <td className="border px-4 py-2 text-center text-gray-700">
+                  {count}회
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
