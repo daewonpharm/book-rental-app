@@ -1,3 +1,4 @@
+// src/pages/BookList.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
@@ -98,13 +99,12 @@ export default function BookList() {
             {filtered.map((book) => (
               <tr key={book.id} className="border-t">
                 <td
-                  className="px-4 py-2 cursor-pointer"
+                  className={`px-4 py-2 ${
+                    book.title === "미키7" ? "cursor-pointer text-blue-600 hover:underline" : ""
+                  }`}
                   onClick={() => {
                     if (book.title === "미키7") {
-                      localStorage.setItem("adminAccess", "true");
-                      setTimeout(() => {
-                        navigate("/admin");
-                      }, 50);
+                      navigate("/admin-gate");
                     }
                   }}
                 >
@@ -137,21 +137,15 @@ export default function BookList() {
             <tr className="bg-gray-100">
               <th className="border px-4 py-2 w-[120px]">순위</th>
               <th className="border px-4 py-2 w-[320px]">제목</th>
-              <th className="border px-4 py-2 w-[120px]">회수</th>
+              <th className="border px-4 py-2 w-[120px]">횟수</th>
             </tr>
           </thead>
           <tbody>
             {topTitles.map(([title, count], idx) => (
               <tr key={idx}>
-                <td className="border px-4 py-2 font-bold text-blue-600">
-                  {idx + 1}
-                </td>
-                <td className="border px-4 py-2 whitespace-nowrap text-sm">
-                  {title}
-                </td>
-                <td className="border px-4 py-2 text-center text-gray-700">
-                  {count}회
-                </td>
+                <td className="border px-4 py-2 font-bold text-blue-600">{idx + 1}</td>
+                <td className="border px-4 py-2 whitespace-nowrap text-sm">{title}</td>
+                <td className="border px-4 py-2 text-center text-gray-700">{count}회</td>
               </tr>
             ))}
           </tbody>
