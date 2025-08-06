@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { db } from "../firebase";
 import {
   doc,
-  getDoc,
   updateDoc,
+  getDoc,
   Timestamp,
   collection,
   query,
@@ -11,6 +11,7 @@ import {
   orderBy,
   limit,
   getDocs,
+  updateDoc as updateLog
 } from "firebase/firestore";
 import BarcodeScanner from "../components/BarcodeScanner";
 
@@ -61,7 +62,7 @@ export default function Return() {
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
       const logDoc = snapshot.docs[0];
-      await updateDoc(logDoc.ref, {
+      await updateLog(logDoc.ref, {
         returnedAt: Timestamp.now(),
       });
     }
@@ -87,7 +88,7 @@ export default function Return() {
       {scanning && (
         <BarcodeScanner
           onDetected={(code) => {
-            setBookCode(code);
+            setBookCode(code.toLowerCase()); // ✅ 소문자 변환
             setScanning(false);
           }}
           onClose={() => setScanning(false)}

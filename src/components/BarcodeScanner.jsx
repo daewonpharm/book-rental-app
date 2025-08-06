@@ -12,18 +12,19 @@ export default function BarcodeScanner({ onDetected, onClose }) {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter((d) => d.kind === "videoinput");
+
         const backCamera =
           videoDevices.find((d) =>
             d.label.toLowerCase().includes("back")
-          ) || videoDevices[0];
+          ) || videoDevices[0]; // fallback
 
         await codeReader.current.decodeFromVideoDevice(
           backCamera.deviceId,
           videoRef.current,
           (result, err) => {
             if (result) {
-              onDetected(result.getText());
-              codeReader.current.reset();
+              onDetected(result.getText().toLowerCase()); // ✅ 소문자로 변환
+              codeReader.current.reset(); // ✅ 인식 후 스캐너 정지
             }
           }
         );
@@ -36,7 +37,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     startScanner();
 
     return () => {
-      codeReader.current?.reset();
+      codeReader.current?.reset(); // ✅ 언마운트 시 정리
     };
   }, [onDetected, onClose]);
 
@@ -47,7 +48,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     >
       <div
         className="relative w-full max-w-md aspect-video bg-black overflow-hidden rounded"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()} // 모달 닫힘 방지
       >
         <video
           ref={videoRef}

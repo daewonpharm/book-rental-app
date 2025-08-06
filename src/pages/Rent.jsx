@@ -1,13 +1,6 @@
 import React, { useState } from "react";
 import { db } from "../firebase";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  Timestamp,
-  collection,
-  addDoc,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, Timestamp, collection, addDoc } from "firebase/firestore";
 import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function Rent() {
@@ -73,7 +66,7 @@ export default function Rent() {
       {scanning && (
         <BarcodeScanner
           onDetected={(code) => {
-            setBookCode(code);
+            setBookCode(code.toLowerCase()); // ✅ 소문자 변환
             setScanning(false);
           }}
           onClose={() => setScanning(false)}
