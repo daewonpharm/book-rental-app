@@ -13,18 +13,25 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter((d) => d.kind === "videoinput");
 
+        // ✅ 항상 후면 카메라 다시 탐색
         const backCamera =
           videoDevices.find((d) =>
             d.label.toLowerCase().includes("back")
-          ) || videoDevices[0]; // fallback
+          ) || videoDevices[videoDevices.length - 1]; // 마지막 카메라 fallback
 
+        if (!backCamera) {
+          throw new Error("사용 가능한 카메라를 찾을 수 없습니다.");
+        }
+
+        // ✅ decodeFromVideoDevice에 명시적으로 후면 카메라 deviceId 전달
         await codeReader.current.decodeFromVideoDevice(
           backCamera.deviceId,
           videoRef.current,
           (result, err) => {
             if (result) {
-              onDetected(result.getText().toLowerCase()); // ✅ 소문자로 변환
-              codeReader.current.reset(); // ✅ 인식 후 스캐너 정지
+              console.log("✅ 바코드 인식:", result.getText());
+              onDetected(result.getText());
+              codeReader.current.reset();
             }
           }
         );
@@ -37,7 +44,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     startScanner();
 
     return () => {
-      codeReader.current?.reset(); // ✅ 언마운트 시 정리
+      codeReader.current?.reset();
     };
   }, [onDetected, onClose]);
 
@@ -48,7 +55,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     >
       <div
         className="relative w-full max-w-md aspect-video bg-black overflow-hidden rounded"
-        onClick={(e) => e.stopPropagation()} // 모달 닫힘 방지
+        onClick={(e) => e.stopPropagation()}
       >
         <video
           ref={videoRef}
