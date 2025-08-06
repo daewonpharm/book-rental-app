@@ -1,43 +1,47 @@
-import React, { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from "@zxing/library";
+import React, { useEffect, useRef } from "react";
+import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library";
 
 export default function BarcodeScanner({ onDetected, onClose }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
-  const [backCameraId, setBackCameraId] = useState(null); // ✅ 카메라 ID 저장
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
 
     const startScanner = async () => {
       try {
-        let deviceId = backCameraId;
+        const constraints = isIOS
+          ? {
+              video: {
+                facingMode: { exact: "environment" }, // ✅ iOS: 후면 카메라 강제
+              },
+            }
+          : {
+              video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+            };
 
-        if (!deviceId) {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const videoDevices = devices.filter((d) => d.kind === "videoinput");
-
-          const backCam =
-            videoDevices.find((d) =>
-              d.label.toLowerCase().includes("back")
-            ) || videoDevices[0]; // fallback
-
-          deviceId = backCam.deviceId;
-          setBackCameraId(deviceId); // ✅ 저장
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute("playsinline", true); // iOS 용
+          await videoRef.current.play();
         }
 
-        await codeReader.current.decodeFromVideoDevice(
-          deviceId,
-          videoRef.current,
-          (result, err) => {
-            if (result) {
-              codeReader.current.reset();
-              onDetected(result.getText().toLowerCase()); // ✅ 소문자 처리
-            }
+        codeReader.current.decodeFromVideoElement(videoRef.current, (result, err) => {
+          if (result) {
+            codeReader.current.reset();
+            stream.getTracks().forEach((track) => track.stop()); // 카메라 종료
+            onDetected(result.getText().toLowerCase()); // ✅ 대소문자
+          } else if (err && !(err instanceof NotFoundException)) {
+            console.error("📛 바코드 오류:", err);
           }
-        );
+        });
       } catch (error) {
-        console.error("❌ 카메라 오류:", error);
+        console.error("❌ 카메라 접근 오류:", error);
         onClose();
       }
     };
@@ -46,8 +50,10 @@ export default function BarcodeScanner({ onDetected, onClose }) {
 
     return () => {
       codeReader.current?.reset();
+      const tracks = videoRef.current?.srcObject?.getTracks?.();
+      tracks?.forEach((track) => track.stop());
     };
-  }, [onDetected, onClose, backCameraId]); // ✅ backCameraId 의존성 추가
+  }, [onDetected, onClose]);
 
   return (
     <div
