@@ -99,7 +99,7 @@ export default function Return() {
   };
 
   return (
-    <div className="min-h-screen w-screen px-4 flex justify-center">
+    <div className="min-h-screen w-full overflow-x-hidden px-4">
       <div className="w-full max-w-md mx-auto space-y-4">
         <h2 className="text-xl font-bold mt-6">📤 도서 반납</h2>
 

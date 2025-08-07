@@ -64,7 +64,7 @@ export default function BookList() {
   };
 
   return (
-    <div className="flex justify-center px-4 min-h-screen">
+    <div className="min-h-screen w-full overflow-x-hidden px-4">
       <div className="w-full max-w-md space-y-6">
         <h2 className="text-xl font-bold">📚 도서 목록</h2>
 
