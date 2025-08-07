@@ -78,18 +78,19 @@ export default function Rent() {
   };
 
   return (
-    <div className="min-h-screen w-screen px-4 flex justify-center">
-      <div className="w-full max-w-md mx-auto space-y-4">
-        <h2 className="text-xl font-bold mt-6">📥 도서 대여</h2>
+    <div className="w-full max-w-screen-md px-4">
+      <div className="text-center font-bold text-xl mb-6 mt-6 flex items-center gap-2">
+        📥 도서 대여
+      </div>
 
-        <label className="block text-sm font-semibold">📷 바코드 스캔</label>
+      <div className="mb-4">
+        <label className="block mb-1">📷 바코드 스캔</label>
         <button
           className="w-full bg-[#fca15f] text-white p-2 rounded hover:bg-[#f98b36]"
           onClick={() => setScanning(!scanning)}
         >
           {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
         </button>
-
         {scanning && (
           <>
             <BarcodeScanner
@@ -101,34 +102,38 @@ export default function Rent() {
             </p>
           </>
         )}
+      </div>
 
-        <label className="block text-sm font-semibold mt-4">📕 도서 제목</label>
+      <div className="mb-4">
+        <label className="block mb-1">📕 도서 제목</label>
         <input
           type="text"
           placeholder="(스캔 시 자동 표시)"
           value={bookTitle}
           readOnly
-          className="border p-2 w-full bg-gray-100 text-gray-800"
+          className="w-full border rounded px-3 py-2 bg-gray-100"
         />
+      </div>
 
-        <label className="block text-sm font-semibold mt-4">👤 사번 6자리</label>
+      <div className="mb-4">
+        <label className="block mb-1">👤 사번 6자리</label>
         <input
           type="text"
           value={employeeId}
           onChange={(e) => setEmployeeId(e.target.value)}
-          className="border p-2 w-full"
+          className="w-full border rounded px-3 py-2"
           maxLength={6}
           placeholder="사번을 입력해주세요"
           inputMode="numeric"
         />
-
-        <button
-          onClick={handleRent}
-          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-4 mb-6"
-        >
-          대여하기
-        </button>
       </div>
+
+      <button
+        onClick={handleRent}
+        className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+      >
+        대여하기
+      </button>
     </div>
   );
 }
