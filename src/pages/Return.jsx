@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import BarcodeScanner from "../components/BarcodeScanner";
 
@@ -28,21 +28,47 @@ export default function Return() {
       return;
     }
 
+    // 사번 6자리 유효성 검사
+    if (!/^\d{6}$/.test(employeeId)) {
+      alert("사번은 숫자 6자리여야 합니다.");
+      return;
+    }
+
     const bookRef = doc(db, "books", bookCode);
+    const bookSnap = await getDoc(bookRef);
+
+    if (!bookSnap.exists()) {
+      alert("해당 도서를 찾을 수 없습니다.");
+      return;
+    }
+
+    const bookData = bookSnap.data();
+    if (bookData.rentedBy !== employeeId) {
+      alert("이 도서를 대여한 사번이 아닙니다.");
+      return;
+    }
+
+    const now = Timestamp.now();
+
+    // 1. 도서 상태 업데이트
     await updateDoc(bookRef, {
-      status: "available",
-      rentedAt: null,
-      returnDue: "",
+      available: true,
+      returnedAt: now,
     });
 
+    // 2. rentLogs 업데이트
     const logsRef = collection(db, "rentLogs");
-    const q = query(logsRef, where("bookCode", "==", bookCode), where("returnedAt", "==", null));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      const logDoc = querySnapshot.docs[0];
+    const q = query(
+      logsRef,
+      where("bookId", "==", bookCode),
+      where("rentedBy", "==", employeeId),
+      where("returnedAt", "==", null)
+    );
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const logDoc = snapshot.docs[0];
       await updateDoc(logDoc.ref, {
-        returnedAt: new Date(),
+        returnedAt: now,
         rating: parseFloat(rating) || null,
       });
     }
@@ -86,8 +112,15 @@ export default function Return() {
         <input
           className="w-full border rounded px-3 py-2"
           value={employeeId}
-          onChange={(e) => setEmployeeId(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (/^\d{0,6}$/.test(value)) {
+              setEmployeeId(value);
+            }
+          }}
+          maxLength={6}
           placeholder="사번을 입력해주세요"
+          inputMode="numeric"
         />
       </div>
 
