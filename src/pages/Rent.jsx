@@ -1,3 +1,4 @@
+// src/pages/Rent.jsx
 import React, { useState } from "react";
 import { db } from "../firebase";
 import {
@@ -18,7 +19,7 @@ export default function Rent() {
 
   const handleRent = async () => {
     if (!bookCode || !employeeId) {
-      alert("도서코드와 사번을 입력하세요.");
+      alert("도서와 사번을 모두 입력하세요.");
       return;
     }
 
@@ -89,21 +90,30 @@ export default function Rent() {
       </button>
 
       {scanning && (
-        <BarcodeScanner
-          onDetected={handleDetected}
-          onClose={() => setScanning(false)}
-        />
+        <>
+          <BarcodeScanner
+            onDetected={handleDetected}
+            onClose={() => setScanning(false)}
+          />
+          <p className="text-sm text-red-500 mt-2">
+            ⚠️ iOS에서는 두 번째 스캔부터 전면 카메라가 사용될 수 있어요. 작동이 안 되면 새로고침 해주세요.
+          </p>
+        </>
       )}
 
-      {/* 도서 제목만 표시 (수정 불가) */}
+      {/* 📘 책 제목 (스캔 시 자동 표시) */}
+      <label className="block text-sm font-semibold mt-4">
+        📕 도서 제목 (스캔 시 자동 표시)
+      </label>
       <input
         type="text"
         placeholder="도서 제목 (스캔 시 자동 표시)"
         value={bookTitle}
         readOnly
-        className="border p-2 w-full bg-gray-100 text-gray-700 cursor-not-allowed"
+        className="border p-2 w-full bg-gray-100 text-gray-800"
       />
 
+      <label className="block text-sm font-semibold mt-4">👤 사번 6자리</label>
       <input
         type="text"
         inputMode="numeric"
@@ -122,7 +132,7 @@ export default function Rent() {
 
       <button
         onClick={handleRent}
-        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-4"
       >
         대여하기
       </button>

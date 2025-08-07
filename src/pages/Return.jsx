@@ -122,12 +122,10 @@ export default function Return() {
         </>
       )}
 
-      {/* 📘 책 제목 (스캔 시 자동 표시) */}
-      <label className="block text-sm font-semibold mt-4">
-        📕 도서 제목 (스캔 시 자동 표시)
-      </label>
+      {/* 📘 책 제목 (스캔 시 자동 표시) → placeholder로 표시 */}
       <input
         type="text"
+        placeholder="도서 제목 (스캔 시 자동 표시)"
         value={title}
         readOnly
         className="border p-2 w-full bg-gray-100 text-gray-800"
