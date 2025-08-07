@@ -57,11 +57,13 @@ export default function Return() {
 
     const now = Timestamp.now();
 
+    // 1. 도서 상태 업데이트
     await updateDoc(bookRef, {
       available: true,
       returnedAt: now,
     });
 
+    // 2. rentLogs 업데이트
     const q = query(
       collection(db, "rentLogs"),
       where("bookId", "==", bookCode),
@@ -78,6 +80,7 @@ export default function Return() {
       await updateDoc(logRef, updateData);
     }
 
+    // 3. 별점 평균 계산 및 저장
     const ratingSnap = await getDocs(
       query(collection(db, "rentLogs"), where("bookId", "==", bookCode), where("rating", "!=", null))
     );
@@ -96,7 +99,7 @@ export default function Return() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center px-4">
+    <div className="min-h-screen w-screen px-4 flex justify-center">
       <div className="w-full max-w-md mx-auto space-y-4">
         <h2 className="text-xl font-bold mt-6">📤 도서 반납</h2>
 
