@@ -1,71 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
-
 export default function BookList() {
-  const [books, setBooks] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortByRating, setSortByRating] = useState(false);
-  const [filterAvailable, setFilterAvailable] = useState(false);
-  const [topTitles, setTopTitles] = useState([]);
-
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchBooks = async () => {
-      const snapshot = await getDocs(collection(db, "books"));
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setBooks(data);
-    };
-
-    const fetchTop = async () => {
-      const snapshot = await getDocs(collection(db, "rentLogs"));
-      const counts = {};
-      snapshot.docs.forEach((doc) => {
-        const title = doc.data().title;
-        counts[title] = (counts[title] || 0) + 1;
-      });
-      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-      setTopTitles(sorted.slice(0, 5));
-    };
-
-    fetchBooks();
-    fetchTop();
-  }, []);
-
-  const handleMickeyClick = () => {
-    const pw = prompt("🔐 관리자 비밀번호를 입력하세요");
-    if (pw === "70687068") {
-      localStorage.setItem("adminAccess", "true");
-      navigate("/admin");
-    } else {
-      alert("❌ 비밀번호가 틀렸습니다.");
-    }
-  };
-
-  const filtered = books
-    .filter((book) =>
-      book.title?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter((book) => (filterAvailable ? book.available !== false : true))
-    .sort((a, b) => {
-      if (!sortByRating) return 0;
-      return (b.avgRating || 0) - (a.avgRating || 0);
-    });
-
-  const getDueDate = (book) => {
-    if (!book.available && book.rentedAt?.toDate) {
-      const due = book.rentedAt.toDate();
-      due.setDate(due.getDate() + 14);
-      return due.toLocaleDateString();
-    }
-    return "–";
-  };
+  // ... useState, useEffect 등 동일 생략 ...
 
   return (
-    <div className="flex justify-center px-4 min-h-screen">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen w-full px-4">
+      <div className="w-full max-w-[500px] mx-auto space-y-6">
         <h2 className="text-xl font-bold">📚 도서 목록</h2>
 
         {/* 검색 및 필터 */}
@@ -73,8 +11,8 @@ export default function BookList() {
           <input
             type="text"
             placeholder="제목 검색"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="border p-2 w-full"
           />
           <label className="flex items-center space-x-2">
@@ -97,40 +35,38 @@ export default function BookList() {
 
         {/* 도서 목록 테이블 */}
         <div className="w-full overflow-x-auto">
-          <table className="w-full table-fixed border-collapse border text-sm">
+          <table className="w-full table-auto border-collapse border text-sm">
             <thead>
               <tr className="bg-gray-100 text-left">
-                <th className="border px-2 py-2 w-[40%]">제목</th>
-                <th className="border px-2 py-2 w-[20%]">상태</th>
-                <th className="border px-2 py-2 w-[25%]">반납 예정일</th>
-                <th className="border px-2 py-2 w-[15%]">⭐</th>
+                <th className="border px-4 py-2">제목</th>
+                <th className="border px-4 py-2">상태</th>
+                <th className="border px-4 py-2">반납 예정일</th>
+                <th className="border px-4 py-2">평균 별점</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((book) => (
                 <tr key={book.id} className="border-t">
                   <td
-                    className="px-2 py-2 truncate max-w-[120px]"
+                    className="px-4 py-2"
                     onClick={() => {
                       if (book.title === "미키7") handleMickeyClick();
                     }}
-                    style={{
-                      cursor: book.title === "미키7" ? "pointer" : "default",
-                    }}
+                    style={{ cursor: book.title === "미키7" ? "pointer" : "default" }}
                   >
                     {book.title}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap">
                     {book.available === false ? (
                       <span className="text-red-500 font-semibold">❌ 대출 중</span>
                     ) : (
                       <span className="text-green-600 font-semibold">✅ 대출 가능</span>
                     )}
                   </td>
-                  <td className="px-2 py-2 text-gray-600 whitespace-nowrap">
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                     {getDueDate(book)}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-center">
+                  <td className="px-4 py-2 whitespace-nowrap">
                     {book.avgRating ? `⭐ ${book.avgRating.toFixed(1)}` : "–"}
                   </td>
                 </tr>
