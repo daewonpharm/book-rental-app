@@ -79,11 +79,7 @@ export default function Return() {
     }
 
     const ratingSnap = await getDocs(
-      query(
-        collection(db, "rentLogs"),
-        where("bookId", "==", bookCode),
-        where("rating", "!=", null)
-      )
+      query(collection(db, "rentLogs"), where("bookId", "==", bookCode), where("rating", "!=", null))
     );
     const ratings = ratingSnap.docs.map((doc) => doc.data().rating);
     const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
@@ -100,7 +96,7 @@ export default function Return() {
   };
 
   return (
-    <div className="min-h-screen w-full px-4 flex justify-center">
+    <div className="min-h-screen flex justify-center px-4">
       <div className="w-full max-w-md mx-auto space-y-4">
         <h2 className="text-xl font-bold mt-6">📤 도서 반납</h2>
 

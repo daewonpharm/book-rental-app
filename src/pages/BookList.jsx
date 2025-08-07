@@ -1,4 +1,3 @@
-// src/pages/BookList.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
@@ -98,20 +97,20 @@ export default function BookList() {
 
         {/* 도서 목록 테이블 */}
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[700px] table-auto border-collapse border text-sm sm:text-base">
+          <table className="w-full table-auto border-collapse border text-sm sm:text-base">
             <thead>
               <tr className="bg-gray-100 text-left">
                 <th className="border px-2 py-1">제목</th>
                 <th className="border px-2 py-1">상태</th>
                 <th className="border px-2 py-1">반납 예정일</th>
-                <th className="border px-2 py-1 text-center">⭐</th>
+                <th className="border px-2 py-1">⭐</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((book) => (
                 <tr key={book.id} className="border-t">
                   <td
-                    className="px-2 py-1 whitespace-normal break-words"
+                    className="px-2 py-1 truncate max-w-[120px]"
                     onClick={() => {
                       if (book.title === "미키7") handleMickeyClick();
                     }}
@@ -141,8 +140,9 @@ export default function BookList() {
         </div>
 
         {/* 인기 대여 TOP 5 */}
-        <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[500px] table-auto border-collapse border text-sm sm:text-base">
+        <div className="w-full">
+          <h3 className="text-lg font-semibold mb-2">🔥 인기 대여 TOP 5</h3>
+          <table className="table-auto w-full border-collapse border text-sm sm:text-base">
             <thead>
               <tr className="bg-gray-100">
                 <th className="border px-2 py-1">순위</th>
@@ -156,7 +156,7 @@ export default function BookList() {
                   <td className="border px-2 py-1 font-bold text-blue-600">
                     {idx + 1}
                   </td>
-                  <td className="border px-2 py-1 whitespace-normal break-words">
+                  <td className="border px-2 py-1 whitespace-nowrap text-sm">
                     {title}
                   </td>
                   <td className="border px-2 py-1 text-center text-gray-700">
