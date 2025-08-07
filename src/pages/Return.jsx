@@ -105,12 +105,12 @@ export default function Return() {
       <h2 className="text-xl font-bold">📤 도서 반납</h2>
 
       <label className="block text-sm font-semibold">📷 바코드 스캔</label>
-      <button
-        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 mb-2"
-        onClick={() => setScanning(!scanning)}
-      >
-        {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
-      </button>
+<button
+  className="w-full bg-[#fca15f] text-white py-2 rounded hover:bg-[#f98b36] mb-2"
+  onClick={() => setScanning(!scanning)}
+>
+  {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
+</button>
 
       {scanning && (
         <>
