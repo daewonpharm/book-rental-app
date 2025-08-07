@@ -64,8 +64,8 @@ export default function BookList() {
   };
 
   return (
-    <div className="min-h-screen w-screen px-4">
-      <div className="w-full max-w-md mx-auto space-y-6">
+    <div className="flex justify-center px-4 min-h-screen">
+      <div className="w-full max-w-md space-y-6">
         <h2 className="text-xl font-bold">📚 도서 목록</h2>
 
         {/* 검색 및 필터 */}
@@ -75,9 +75,9 @@ export default function BookList() {
             placeholder="제목 검색"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="border p-2 w-full"
+            className="border p-2 w-full text-sm sm:text-base"
           />
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2 text-sm sm:text-base">
             <input
               type="checkbox"
               checked={sortByRating}
@@ -85,7 +85,7 @@ export default function BookList() {
             />
             <span>⭐ 별점 높은 순</span>
           </label>
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2 text-sm sm:text-base">
             <input
               type="checkbox"
               checked={filterAvailable}
@@ -97,20 +97,20 @@ export default function BookList() {
 
         {/* 도서 목록 테이블 */}
         <div className="w-full overflow-x-auto">
-          <table className="w-full table-auto border-collapse border text-sm">
+          <table className="w-full table-auto border-collapse border text-sm sm:text-base">
             <thead>
               <tr className="bg-gray-100 text-left">
-                <th className="border px-4 py-2">제목</th>
-                <th className="border px-4 py-2">상태</th>
-                <th className="border px-4 py-2">반납 예정일</th>
-                <th className="border px-4 py-2">평균 별점</th>
+                <th className="border px-2 py-1">제목</th>
+                <th className="border px-2 py-1">상태</th>
+                <th className="border px-2 py-1">반납 예정일</th>
+                <th className="border px-2 py-1">⭐</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((book) => (
                 <tr key={book.id} className="border-t">
                   <td
-                    className="px-4 py-2"
+                    className="px-2 py-1 truncate max-w-[120px]"
                     onClick={() => {
                       if (book.title === "미키7") handleMickeyClick();
                     }}
@@ -120,17 +120,17 @@ export default function BookList() {
                   >
                     {book.title}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-2 py-1 whitespace-nowrap">
                     {book.available === false ? (
                       <span className="text-red-500 font-semibold">❌ 대출 중</span>
                     ) : (
                       <span className="text-green-600 font-semibold">✅ 대출 가능</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
+                  <td className="px-2 py-1 text-gray-600 whitespace-nowrap">
                     {getDueDate(book)}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-2 py-1 whitespace-nowrap text-center">
                     {book.avgRating ? `⭐ ${book.avgRating.toFixed(1)}` : "–"}
                   </td>
                 </tr>
@@ -142,24 +142,24 @@ export default function BookList() {
         {/* 인기 대여 TOP 5 */}
         <div className="w-full">
           <h3 className="text-lg font-semibold mb-2">🔥 인기 대여 TOP 5</h3>
-          <table className="table-auto w-full border-collapse border text-sm">
+          <table className="table-auto w-full border-collapse border text-sm sm:text-base">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border px-4 py-2">순위</th>
-                <th className="border px-4 py-2">제목</th>
-                <th className="border px-4 py-2">횟수</th>
+                <th className="border px-2 py-1">순위</th>
+                <th className="border px-2 py-1">제목</th>
+                <th className="border px-2 py-1">횟수</th>
               </tr>
             </thead>
             <tbody>
               {topTitles.map(([title, count], idx) => (
                 <tr key={idx}>
-                  <td className="border px-4 py-2 font-bold text-blue-600">
+                  <td className="border px-2 py-1 font-bold text-blue-600">
                     {idx + 1}
                   </td>
-                  <td className="border px-4 py-2 whitespace-nowrap text-sm">
+                  <td className="border px-2 py-1 whitespace-nowrap text-sm">
                     {title}
                   </td>
-                  <td className="border px-4 py-2 text-center text-gray-700">
+                  <td className="border px-2 py-1 text-center text-gray-700">
                     {count}회
                   </td>
                 </tr>
