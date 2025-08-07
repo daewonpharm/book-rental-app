@@ -78,10 +78,10 @@ export default function Rent() {
     setScanning(false);
   };
 
-  return (
-    <div className="flex justify-center px-4">
-      <div className="w-full max-w-sm space-y-4">
-        <h2 className="text-xl font-bold">📥 도서 대여</h2>
+return (
+  <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="w-full max-w-sm space-y-4">
+      <h2 className="text-xl font-bold">📥 도서 대여</h2>
 
         <label className="block text-sm font-semibold">📷 바코드 스캔</label>
         <button

@@ -65,7 +65,7 @@ export default function BookList() {
   };
 
   return (
-    <div className="p-4 flex flex-col lg:flex-row items-start gap-6">
+    <div className="w-full max-w-screen-sm mx-auto flex flex-col gap-6 px-2">
       {/* 📚 도서 목록 테이블 */}
       <div className="w-full lg:w-2/3">
         <h2 className="text-xl font-bold mb-4">📚 도서 목록</h2>
