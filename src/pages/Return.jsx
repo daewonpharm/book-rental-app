@@ -14,10 +14,10 @@ import {
 import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function Return() {
-  const [bookCode, setBookCode] = useState("");     // 내부 처리용
-  const [title, setTitle] = useState("");           // 사용자 표시용
-  const [employeeId, setEmployeeId] = useState(""); // 입력 사번
-  const [rating, setRating] = useState("");         // 별점
+  const [bookCode, setBookCode] = useState("");
+  const [title, setTitle] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [rating, setRating] = useState("");
   const [scanning, setScanning] = useState(false);
 
   const handleDetected = async (code) => {
@@ -58,13 +58,11 @@ export default function Return() {
 
     const now = Timestamp.now();
 
-    // 1. 도서 상태 업데이트
     await updateDoc(bookRef, {
       available: true,
       returnedAt: now,
     });
 
-    // 2. rentLogs 업데이트
     const q = query(
       collection(db, "rentLogs"),
       where("bookId", "==", bookCode),
@@ -81,9 +79,12 @@ export default function Return() {
       await updateDoc(logRef, updateData);
     }
 
-    // 3. 별점 평균 계산 및 저장
     const ratingSnap = await getDocs(
-      query(collection(db, "rentLogs"), where("bookId", "==", bookCode), where("rating", "!=", null))
+      query(
+        collection(db, "rentLogs"),
+        where("bookId", "==", bookCode),
+        where("rating", "!=", null)
+      )
     );
     const ratings = ratingSnap.docs.map((doc) => doc.data().rating);
     const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
@@ -105,7 +106,7 @@ export default function Return() {
 
       <label className="block text-sm font-semibold">📷 바코드 스캔</label>
       <button
-        className="bg-gray-200 px-4 py-2 rounded"
+        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 mb-2"
         onClick={() => setScanning(!scanning)}
       >
         {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
@@ -123,10 +124,7 @@ export default function Return() {
         </>
       )}
 
-      {/* 도서 제목 필드 */}
-      <label className="block text-sm font-semibold mt-4">
-        📕 도서 제목
-      </label>
+      <label className="block text-sm font-semibold mt-4">📕 도서 제목</label>
       <input
         type="text"
         placeholder="(스캔 시 자동 표시)"
@@ -157,7 +155,7 @@ export default function Return() {
           const val = (10 - i) * 0.5;
           return (
             <option key={val} value={val}>
-              {"⭐".repeat(Math.floor(val)) + (val % 1 === 0.5 ? "⯨" : "")} {val.toFixed(1)}
+              {`⭐ ${val.toFixed(1)}`}
             </option>
           );
         })}
