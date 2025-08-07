@@ -10,6 +10,7 @@ import {
   addDoc,
 } from "firebase/firestore";
 import BarcodeScanner from "../components/BarcodeScanner";
+import Container from "../components/Container"; // ✅ 추가됨
 
 export default function Rent() {
   const [bookCode, setBookCode] = useState("");
@@ -79,8 +80,8 @@ export default function Rent() {
   };
 
   return (
-    <div className="w-full max-w-sm mx-auto space-y-4">
-      <h2 className="text-xl font-bold">📥 도서 대여</h2>
+    <Container>
+      <h2 className="text-xl font-bold mb-4">📥 도서 대여</h2>
 
       <label className="block text-sm font-semibold">📷 바코드 스캔</label>
       <button
@@ -128,6 +129,6 @@ export default function Rent() {
       >
         대여하기
       </button>
-    </div>
+    </Container>
   );
 }

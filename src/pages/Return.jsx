@@ -12,6 +12,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import BarcodeScanner from "../components/BarcodeScanner";
+import Container from "../components/Container"; // ✅ 추가
 
 export default function Return() {
   const [bookCode, setBookCode] = useState("");
@@ -58,11 +59,13 @@ export default function Return() {
 
     const now = Timestamp.now();
 
+    // 1. 도서 상태 업데이트
     await updateDoc(bookRef, {
       available: true,
       returnedAt: now,
     });
 
+    // 2. rentLogs 업데이트
     const q = query(
       collection(db, "rentLogs"),
       where("bookId", "==", bookCode),
@@ -79,6 +82,7 @@ export default function Return() {
       await updateDoc(logRef, updateData);
     }
 
+    // 3. 별점 평균 계산 및 저장
     const ratingSnap = await getDocs(
       query(
         collection(db, "rentLogs"),
@@ -101,8 +105,8 @@ export default function Return() {
   };
 
   return (
-    <div className="w-full max-w-sm mx-auto space-y-4">
-      <h2 className="text-xl font-bold">📤 도서 반납</h2>
+    <Container>
+      <h2 className="text-xl font-bold mb-4">📤 도서 반납</h2>
 
       <label className="block text-sm font-semibold">📷 바코드 스캔</label>
       <button
@@ -169,6 +173,6 @@ export default function Return() {
       >
         반납하기
       </button>
-    </div>
+    </Container>
   );
 }
