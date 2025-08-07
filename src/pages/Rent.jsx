@@ -12,14 +12,19 @@ import {
 import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function Rent() {
-  const [bookCode, setBookCode] = useState("");      // 내부 처리용
-  const [bookTitle, setBookTitle] = useState("");    // 사용자 표시용
-  const [employeeId, setEmployeeId] = useState("");
+  const [bookCode, setBookCode] = useState("");
+  const [bookTitle, setBookTitle] = useState("");
   const [scanning, setScanning] = useState(false);
 
   const handleRent = async () => {
-    if (!bookCode || !employeeId) {
-      alert("도서와 사번을 모두 입력하세요.");
+    if (!bookCode) {
+      alert("도서를 먼저 스캔해주세요.");
+      return;
+    }
+
+    const employeeId = prompt("대여자 사번 6자리를 입력하세요:");
+    if (!employeeId || !/^\d{6}$/.test(employeeId)) {
+      alert("유효한 6자리 사번을 입력해주세요.");
       return;
     }
 
@@ -58,7 +63,6 @@ export default function Rent() {
     alert("도서가 대여되었습니다.");
     setBookCode("");
     setBookTitle("");
-    setEmployeeId("");
     setScanning(false);
   };
 
@@ -69,8 +73,8 @@ export default function Rent() {
 
     if (bookSnap.exists()) {
       const bookData = bookSnap.data();
-      setBookCode(normalizedCode);     // 내부용으로 저장
-      setBookTitle(bookData.title);    // 사용자 표시용
+      setBookCode(normalizedCode);
+      setBookTitle(bookData.title);
     } else {
       alert("해당 도서를 찾을 수 없습니다.");
     }
@@ -84,7 +88,7 @@ export default function Rent() {
 
       <label className="block text-sm font-semibold">📷 바코드 스캔</label>
       <button
-        className="bg-gray-200 px-4 py-2 rounded"
+        className="w-full bg-[#fca15f] text-white py-2 rounded hover:bg-[#f98b36] mb-2"
         onClick={() => setScanning(!scanning)}
       >
         {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
@@ -102,33 +106,13 @@ export default function Rent() {
         </>
       )}
 
-      {/* 도서 제목 필드 */}
-      <label className="block text-sm font-semibold mt-4">
-        📕 도서 제목
-      </label>
+      <label className="block text-sm font-semibold mt-4">📕 도서 제목</label>
       <input
         type="text"
         placeholder="(스캔 시 자동 표시)"
         value={bookTitle}
         readOnly
         className="border p-2 w-full bg-gray-100 text-gray-800"
-      />
-
-      <label className="block text-sm font-semibold mt-4">👤 사번 6자리</label>
-      <input
-        type="text"
-        inputMode="numeric"
-        pattern="\d{6}"
-        maxLength={6}
-        placeholder="사번 6자리"
-        value={employeeId}
-        onChange={(e) => {
-          const value = e.target.value;
-          if (/^\d{0,6}$/.test(value)) {
-            setEmployeeId(value);
-          }
-        }}
-        className="border p-2 w-full"
       />
 
       <button
