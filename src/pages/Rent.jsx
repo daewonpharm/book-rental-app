@@ -10,7 +10,6 @@ import {
   addDoc,
 } from "firebase/firestore";
 import BarcodeScanner from "../components/BarcodeScanner";
-import Container from "../components/Container"; // ✅ 추가됨
 
 export default function Rent() {
   const [bookCode, setBookCode] = useState("");
@@ -64,13 +63,13 @@ export default function Rent() {
   };
 
   const handleDetected = async (code) => {
-    const normalized = code.toLowerCase();
-    const bookRef = doc(db, "books", normalized);
+    const normalizedCode = code.toLowerCase();
+    const bookRef = doc(db, "books", normalizedCode);
     const bookSnap = await getDoc(bookRef);
 
     if (bookSnap.exists()) {
       const bookData = bookSnap.data();
-      setBookCode(normalized);
+      setBookCode(normalizedCode);
       setBookTitle(bookData.title);
     } else {
       alert("해당 도서를 찾을 수 없습니다.");
@@ -80,55 +79,57 @@ export default function Rent() {
   };
 
   return (
-    <Container>
-      <h2 className="text-xl font-bold mb-4">📥 도서 대여</h2>
+    <div className="flex justify-center px-4">
+      <div className="w-full max-w-sm space-y-4">
+        <h2 className="text-xl font-bold">📥 도서 대여</h2>
 
-      <label className="block text-sm font-semibold">📷 바코드 스캔</label>
-      <button
-        className="w-full bg-[#fca15f] text-white p-2 rounded hover:bg-[#f98b36] mb-2"
-        onClick={() => setScanning(!scanning)}
-      >
-        {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
-      </button>
+        <label className="block text-sm font-semibold">📷 바코드 스캔</label>
+        <button
+          className="w-full bg-[#fca15f] text-white p-2 rounded hover:bg-[#f98b36] mb-2"
+          onClick={() => setScanning(!scanning)}
+        >
+          {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
+        </button>
 
-      {scanning && (
-        <>
-          <BarcodeScanner
-            onDetected={handleDetected}
-            onClose={() => setScanning(false)}
-          />
-          <p className="text-sm text-red-500 mt-2">
-            ⚠️ iOS에서는 두 번째 스캔부터 전면 카메라가 사용될 수 있어요. 작동이 안 되면 새로고침 해주세요.
-          </p>
-        </>
-      )}
+        {scanning && (
+          <>
+            <BarcodeScanner
+              onDetected={handleDetected}
+              onClose={() => setScanning(false)}
+            />
+            <p className="text-sm text-red-500 mt-2">
+              ⚠️ iOS에서는 두 번째 스캔부터 전면 카메라가 사용될 수 있어요. 작동이 안 되면 새로고침 해주세요.
+            </p>
+          </>
+        )}
 
-      <label className="block text-sm font-semibold mt-4">📕 도서 제목</label>
-      <input
-        type="text"
-        placeholder="(스캔 시 자동 표시)"
-        value={bookTitle}
-        readOnly
-        className="border p-2 w-full bg-gray-100 text-gray-800"
-      />
+        <label className="block text-sm font-semibold mt-4">📕 도서 제목</label>
+        <input
+          type="text"
+          placeholder="(스캔 시 자동 표시)"
+          value={bookTitle}
+          readOnly
+          className="border p-2 w-full bg-gray-100 text-gray-800"
+        />
 
-      <label className="block text-sm font-semibold mt-4">👤 사번 6자리</label>
-      <input
-        type="text"
-        value={employeeId}
-        onChange={(e) => setEmployeeId(e.target.value)}
-        className="border p-2 w-full"
-        maxLength={6}
-        placeholder="사번을 입력해주세요"
-        inputMode="numeric"
-      />
+        <label className="block text-sm font-semibold mt-4">👤 사번 6자리</label>
+        <input
+          type="text"
+          value={employeeId}
+          onChange={(e) => setEmployeeId(e.target.value)}
+          maxLength={6}
+          className="border p-2 w-full"
+          placeholder="사번을 입력해주세요"
+          inputMode="numeric"
+        />
 
-      <button
-        onClick={handleRent}
-        className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-4"
-      >
-        대여하기
-      </button>
-    </Container>
+        <button
+          onClick={handleRent}
+          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-4"
+        >
+          대여하기
+        </button>
+      </div>
+    </div>
   );
 }
