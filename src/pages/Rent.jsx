@@ -116,15 +116,15 @@ export default function Rent() {
         type="text"
         value={employeeId}
         onChange={(e) => setEmployeeId(e.target.value)}
-        className="border p-2 w-full"
         maxLength={6}
+        className="border p-2 w-full"
+        placeholder="사번을 입력해주세요"
         inputMode="numeric"
-        placeholder="사번 6자리"
       />
 
       <button
         onClick={handleRent}
-        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-4"
+        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 mt-4"
       >
         대여하기
       </button>
