@@ -1,4 +1,5 @@
-// src/pages/BookList.jsx
+// ✅ Rent.jsx와 Return.jsx와 동일한 공통 레이아웃 구조 적용 완료
+
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
@@ -65,106 +66,106 @@ export default function BookList() {
   };
 
   return (
-    <div className="w-full max-w-screen-sm mx-auto flex flex-col gap-6 px-2">
-      {/* 📚 도서 목록 테이블 */}
-      <div className="w-full lg:w-2/3">
-        <h2 className="text-xl font-bold mb-4">📚 도서 목록</h2>
+    <div className="flex justify-center px-4">
+      <div className="w-full max-w-4xl flex flex-col gap-6">
+        <div className="w-full overflow-x-auto">
+          <h2 className="text-xl font-bold mb-4">📚 도서 목록</h2>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <input
-            type="text"
-            placeholder="제목 검색"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border p-2 w-full md:w-1/3"
-          />
-          <label className="flex items-center space-x-2">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
             <input
-              type="checkbox"
-              checked={sortByRating}
-              onChange={() => setSortByRating(!sortByRating)}
+              type="text"
+              placeholder="제목 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border p-2 w-full md:w-1/3"
             />
-            <span>⭐ 별점 높은 순</span>
-          </label>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={filterAvailable}
-              onChange={() => setFilterAvailable(!filterAvailable)}
-            />
-            <span>✅ 대출 가능만</span>
-          </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={sortByRating}
+                onChange={() => setSortByRating(!sortByRating)}
+              />
+              <span>⭐ 별점 높은 순</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={filterAvailable}
+                onChange={() => setFilterAvailable(!filterAvailable)}
+              />
+              <span>✅ 대출 가능만</span>
+            </label>
+          </div>
+
+          <table className="min-w-full table-auto border-collapse border text-sm">
+            <thead>
+              <tr className="bg-gray-100 text-left">
+                <th className="border px-4 py-2">제목</th>
+                <th className="border px-4 py-2 w-[140px]">상태</th>
+                <th className="border px-4 py-2 w-[160px]">반납 예정일</th>
+                <th className="border px-4 py-2 w-[140px]">평균 별점</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((book) => (
+                <tr key={book.id} className="border-t">
+                  <td
+                    className="px-4 py-2"
+                    onClick={() => {
+                      if (book.title === "미키7") {
+                        handleMickeyClick();
+                      }
+                    }}
+                    style={{ cursor: book.title === "미키7" ? "pointer" : "default" }}
+                  >
+                    {book.title}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {book.available === false ? (
+                      <span className="text-red-500 font-semibold">❌ 대출 중</span>
+                    ) : (
+                      <span className="text-green-600 font-semibold">✅ 대출 가능</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
+                    {getDueDate(book)}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {book.avgRating ? `⭐ ${book.avgRating.toFixed(1)}` : "–"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <table className="w-full table-auto border-collapse border text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-left">
-              <th className="border px-4 py-2">제목</th>
-              <th className="border px-4 py-2 w-[140px]">상태</th>
-              <th className="border px-4 py-2 w-[160px]">반납 예정일</th>
-              <th className="border px-4 py-2 w-[140px]">평균 별점</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((book) => (
-              <tr key={book.id} className="border-t">
-                <td
-                  className="px-4 py-2"
-                  onClick={() => {
-                    if (book.title === "미키7") {
-                      handleMickeyClick();
-                    }
-                  }}
-                  style={{ cursor: book.title === "미키7" ? "pointer" : "default" }}
-                >
-                  {book.title}
-                </td>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  {book.available === false ? (
-                    <span className="text-red-500 font-semibold">❌ 대출 중</span>
-                  ) : (
-                    <span className="text-green-600 font-semibold">✅ 대출 가능</span>
-                  )}
-                </td>
-                <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
-                  {getDueDate(book)}
-                </td>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  {book.avgRating ? `⭐ ${book.avgRating.toFixed(1)}` : "–"}
-                </td>
+        <div className="w-full lg:w-1/3 lg:sticky lg:top-4 h-fit mt-[66px]">
+          <h3 className="text-lg font-semibold mb-2">🔥 인기 대여 TOP 5</h3>
+          <table className="table-auto w-full border-collapse border text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-4 py-2 w-[120px]">순위</th>
+                <th className="border px-4 py-2 w-[320px]">제목</th>
+                <th className="border px-4 py-2 w-[120px]">횟수</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 🔥 인기 대여 TOP 5 */}
-      <div className="w-full lg:w-1/3 lg:sticky lg:top-4 h-fit mt-[66px]">
-        <h3 className="text-lg font-semibold mb-2">🔥 인기 대여 TOP 5</h3>
-        <table className="table-auto w-full border-collapse border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2 w-[120px]">순위</th>
-              <th className="border px-4 py-2 w-[320px]">제목</th>
-              <th className="border px-4 py-2 w-[120px]">횟수</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topTitles.map(([title, count], idx) => (
-              <tr key={idx}>
-                <td className="border px-4 py-2 font-bold text-blue-600">
-                  {idx + 1}
-                </td>
-                <td className="border px-4 py-2 whitespace-nowrap text-sm">
-                  {title}
-                </td>
-                <td className="border px-4 py-2 text-center text-gray-700">
-                  {count}회
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {topTitles.map(([title, count], idx) => (
+                <tr key={idx}>
+                  <td className="border px-4 py-2 font-bold text-blue-600">
+                    {idx + 1}
+                  </td>
+                  <td className="border px-4 py-2 whitespace-nowrap text-sm">
+                    {title}
+                  </td>
+                  <td className="border px-4 py-2 text-center text-gray-700">
+                    {count}회
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
