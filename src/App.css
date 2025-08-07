@@ -5,6 +5,22 @@
   text-align: center;
 }
 
+/* ✅ 라이트모드 강제 적용 (보완) */
+html, body {
+  background-color: white !important;
+  color: black !important;
+}
+
+/* 필요할 경우 유지할 스타일 */
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* ✅ 사용하지 않으면 아래는 삭제 가능 */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -31,12 +47,4 @@
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }
