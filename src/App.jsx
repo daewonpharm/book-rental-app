@@ -22,6 +22,12 @@ export default function App() {
       <div className="w-screen min-h-screen overflow-x-hidden bg-white">
         <div className="flex flex-col items-center px-4">
           <div className="w-full max-w-screen-sm">
+            
+            {/* ✅ 상단 로고 */}
+            <div className="flex justify-center items-center py-4">
+              <img src="/logo.png" alt="회사 로고" className="h-12" />
+            </div>
+
             <Navigation />
           </div>
 
