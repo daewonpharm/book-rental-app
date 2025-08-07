@@ -140,6 +140,8 @@ export default function Return() {
         onChange={(e) => setEmployeeId(e.target.value)}
         className="border p-2 w-full"
         maxLength={6}
+        inputMode="numeric"
+        placeholder="사번 6자리"
       />
 
       <label className="block text-sm font-semibold mt-4">
