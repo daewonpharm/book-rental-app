@@ -63,13 +63,13 @@ export default function Rent() {
   };
 
   const handleDetected = async (code) => {
-    const normalizedCode = code.toLowerCase();
-    const bookRef = doc(db, "books", normalizedCode);
+    const normalized = code.toLowerCase();
+    const bookRef = doc(db, "books", normalized);
     const bookSnap = await getDoc(bookRef);
 
     if (bookSnap.exists()) {
       const bookData = bookSnap.data();
-      setBookCode(normalizedCode);
+      setBookCode(normalized);
       setBookTitle(bookData.title);
     } else {
       alert("해당 도서를 찾을 수 없습니다.");
@@ -79,12 +79,12 @@ export default function Rent() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full max-w-sm mx-auto space-y-4">
       <h2 className="text-xl font-bold">📥 도서 대여</h2>
 
       <label className="block text-sm font-semibold">📷 바코드 스캔</label>
       <button
-        className="w-full bg-[#fca15f] text-white py-2 rounded hover:bg-[#f98b36] mb-2"
+        className="w-full bg-[#fca15f] text-white p-2 rounded hover:bg-[#f98b36] mb-2"
         onClick={() => setScanning(!scanning)}
       >
         {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
@@ -116,15 +116,15 @@ export default function Rent() {
         type="text"
         value={employeeId}
         onChange={(e) => setEmployeeId(e.target.value)}
-        maxLength={6}
         className="border p-2 w-full"
+        maxLength={6}
         placeholder="사번을 입력해주세요"
         inputMode="numeric"
       />
 
       <button
         onClick={handleRent}
-        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 mt-4"
+        className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-4"
       >
         대여하기
       </button>

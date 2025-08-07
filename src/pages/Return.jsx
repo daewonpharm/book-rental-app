@@ -101,16 +101,16 @@ export default function Return() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full max-w-sm mx-auto space-y-4">
       <h2 className="text-xl font-bold">📤 도서 반납</h2>
 
       <label className="block text-sm font-semibold">📷 바코드 스캔</label>
-<button
-  className="w-full bg-[#fca15f] text-white py-2 rounded hover:bg-[#f98b36] mb-2"
-  onClick={() => setScanning(!scanning)}
->
-  {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
-</button>
+      <button
+        className="w-full bg-[#fca15f] text-white p-2 rounded hover:bg-[#f98b36] mb-2"
+        onClick={() => setScanning(!scanning)}
+      >
+        {scanning ? "📷 스캔 중지" : "📷 카메라로 스캔하기"}
+      </button>
 
       {scanning && (
         <>
@@ -140,8 +140,8 @@ export default function Return() {
         onChange={(e) => setEmployeeId(e.target.value)}
         className="border p-2 w-full"
         maxLength={6}
-        inputMode="numeric"
         placeholder="사번을 입력해주세요"
+        inputMode="numeric"
       />
 
       <label className="block text-sm font-semibold mt-4">
@@ -165,7 +165,7 @@ export default function Return() {
 
       <button
         onClick={handleReturn}
-        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-4"
+        className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 mt-4"
       >
         반납하기
       </button>
