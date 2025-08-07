@@ -14,17 +14,12 @@ import BarcodeScanner from "../components/BarcodeScanner";
 export default function Rent() {
   const [bookCode, setBookCode] = useState("");
   const [bookTitle, setBookTitle] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
   const [scanning, setScanning] = useState(false);
 
   const handleRent = async () => {
-    if (!bookCode) {
-      alert("도서를 먼저 스캔해주세요.");
-      return;
-    }
-
-    const employeeId = prompt("대여자 사번 6자리를 입력하세요:");
-    if (!employeeId || !/^\d{6}$/.test(employeeId)) {
-      alert("유효한 6자리 사번을 입력해주세요.");
+    if (!bookCode || !employeeId) {
+      alert("도서와 사번을 모두 입력하세요.");
       return;
     }
 
@@ -63,6 +58,7 @@ export default function Rent() {
     alert("도서가 대여되었습니다.");
     setBookCode("");
     setBookTitle("");
+    setEmployeeId("");
     setScanning(false);
   };
 
@@ -113,6 +109,17 @@ export default function Rent() {
         value={bookTitle}
         readOnly
         className="border p-2 w-full bg-gray-100 text-gray-800"
+      />
+
+      <label className="block text-sm font-semibold mt-4">👤 사번 6자리</label>
+      <input
+        type="text"
+        value={employeeId}
+        onChange={(e) => setEmployeeId(e.target.value)}
+        className="border p-2 w-full"
+        maxLength={6}
+        inputMode="numeric"
+        placeholder="사번 6자리"
       />
 
       <button
