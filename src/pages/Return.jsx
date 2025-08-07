@@ -99,8 +99,8 @@ export default function Return() {
   };
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden px-4">
-      <div className="w-full max-w-md mx-auto space-y-4">
+    <div className="min-h-screen w-full px-4 flex justify-center">
+      <div className="w-full max-w-md space-y-4">
         <h2 className="text-xl font-bold mt-6">📤 도서 반납</h2>
 
         <label className="block text-sm font-semibold">📷 바코드 스캔</label>
