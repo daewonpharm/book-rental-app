@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import BarcodeScanner from "../components/BarcodeScanner";
 import { db } from "../firebase";
 import {
   doc,
@@ -9,28 +8,13 @@ import {
   collection,
   addDoc,
 } from "firebase/firestore";
+import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function Rent() {
   const [bookCode, setBookCode] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [scanning, setScanning] = useState(false);
-
-  const handleDetected = async (code) => {
-    const normalizedCode = code.toLowerCase();
-    const bookRef = doc(db, "books", normalizedCode);
-    const bookSnap = await getDoc(bookRef);
-
-    if (bookSnap.exists()) {
-      const bookData = bookSnap.data();
-      setBookCode(normalizedCode);
-      setBookTitle(bookData.title);
-    } else {
-      alert("해당 도서를 찾을 수 없습니다.");
-    }
-
-    setScanning(false);
-  };
 
   const handleRent = async () => {
     if (!bookCode || !employeeId) {
@@ -77,9 +61,25 @@ export default function Rent() {
     setScanning(false);
   };
 
+  const handleDetected = async (code) => {
+    const normalizedCode = code.toLowerCase();
+    const bookRef = doc(db, "books", normalizedCode);
+    const bookSnap = await getDoc(bookRef);
+
+    if (bookSnap.exists()) {
+      const bookData = bookSnap.data();
+      setBookCode(normalizedCode);
+      setBookTitle(bookData.title);
+    } else {
+      alert("해당 도서를 찾을 수 없습니다.");
+    }
+
+    setScanning(false);
+  };
+
   return (
-    <div className="min-h-screen w-full px-4 flex justify-center">
-      <div className="w-full max-w-md space-y-4">
+    <div className="min-h-screen w-screen px-4 flex justify-center">
+      <div className="w-full max-w-md mx-auto space-y-4">
         <h2 className="text-xl font-bold mt-6">📥 도서 대여</h2>
 
         <label className="block text-sm font-semibold">📷 바코드 스캔</label>

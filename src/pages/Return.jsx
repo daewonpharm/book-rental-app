@@ -1,46 +1,106 @@
 import React, { useState } from "react";
-import BarcodeScanner from "../components/BarcodeScanner";
 import { db } from "../firebase";
 import {
+  doc,
+  getDoc,
+  updateDoc,
+  Timestamp,
   collection,
-  getDocs,
   query,
   where,
-  updateDoc,
-  doc,
-  Timestamp,
+  getDocs,
 } from "firebase/firestore";
+import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function Return() {
-  const [bookTitle, setBookTitle] = useState("");
+  const [bookCode, setBookCode] = useState("");
+  const [title, setTitle] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [rating, setRating] = useState("");
   const [scanning, setScanning] = useState(false);
 
   const handleDetected = async (code) => {
-    try {
-      const booksRef = collection(db, "books");
-      const q = query(booksRef, where("bookCode", "==", code));
-      const querySnapshot = await getDocs(q);
+    const normalized = code.toLowerCase();
+    const bookRef = doc(db, "books", normalized);
+    const bookSnap = await getDoc(bookRef);
 
-      if (!querySnapshot.empty) {
-        const bookData = querySnapshot.docs[0].data();
-        setBookTitle(bookData.title);
-      } else {
-        alert("책을 찾을 수 없습니다.");
-      }
-    } catch (error) {
-      console.error("스캔 처리 중 오류:", error);
+    if (!bookSnap.exists()) {
+      alert("해당 도서를 찾을 수 없습니다.");
+      return;
     }
+
+    const bookData = bookSnap.data();
+    setBookCode(normalized);
+    setTitle(bookData.title || "");
+    setScanning(false);
   };
 
   const handleReturn = async () => {
-    // 생략: 기존 handleReturn 로직
+    if (!bookCode || !employeeId) {
+      alert("도서와 사번을 모두 입력하세요.");
+      return;
+    }
+
+    const bookRef = doc(db, "books", bookCode);
+    const bookSnap = await getDoc(bookRef);
+
+    if (!bookSnap.exists()) {
+      alert("도서를 찾을 수 없습니다.");
+      return;
+    }
+
+    const bookData = bookSnap.data();
+    if (bookData.rentedBy !== employeeId) {
+      alert("이 도서를 대여한 사번이 아닙니다.");
+      return;
+    }
+
+    const now = Timestamp.now();
+
+    // 1. 도서 상태 업데이트
+    await updateDoc(bookRef, {
+      available: true,
+      returnedAt: now,
+    });
+
+    // 2. rentLogs 업데이트
+    const q = query(
+      collection(db, "rentLogs"),
+      where("bookId", "==", bookCode),
+      where("rentedBy", "==", employeeId),
+      where("returnedAt", "==", null)
+    );
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const logRef = doc(db, "rentLogs", snapshot.docs[0].id);
+      const updateData = { returnedAt: now };
+      if (rating) {
+        updateData.rating = parseFloat(rating);
+      }
+      await updateDoc(logRef, updateData);
+    }
+
+    // 3. 별점 평균 계산 및 저장
+    const ratingSnap = await getDocs(
+      query(collection(db, "rentLogs"), where("bookId", "==", bookCode), where("rating", "!=", null))
+    );
+    const ratings = ratingSnap.docs.map((doc) => doc.data().rating);
+    const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+
+    await updateDoc(bookRef, {
+      avgRating: parseFloat(avgRating.toFixed(2)),
+    });
+
+    alert("반납 완료!");
+    setBookCode("");
+    setTitle("");
+    setEmployeeId("");
+    setRating("");
   };
 
   return (
-    <div className="min-h-screen w-full px-4 flex justify-center">
-      <div className="w-full max-w-md space-y-4">
+    <div className="min-h-screen w-screen px-4 flex justify-center">
+      <div className="w-full max-w-md mx-auto space-y-4">
         <h2 className="text-xl font-bold mt-6">📤 도서 반납</h2>
 
         <label className="block text-sm font-semibold">📷 바코드 스캔</label>
@@ -59,6 +119,7 @@ export default function Return() {
             />
             <p className="text-sm text-red-500 mt-2">
               ⚠️ iOS에서는 두 번째 스캔부터 전면 카메라가 사용될 수 있어요.
+              작동이 안 되면 새로고침 해주세요.
             </p>
           </>
         )}
@@ -67,7 +128,7 @@ export default function Return() {
         <input
           type="text"
           placeholder="(스캔 시 자동 표시)"
-          value={bookTitle}
+          value={title}
           readOnly
           className="border p-2 w-full bg-gray-100 text-gray-800"
         />
@@ -92,16 +153,14 @@ export default function Return() {
           className="border p-2 w-full"
         >
           <option value="">선택 안 함</option>
-          <option value="5">⭐ 5.0</option>
-          <option value="4.5">⭐ 4.5</option>
-          <option value="4">⭐ 4.0</option>
-          <option value="3.5">⭐ 3.5</option>
-          <option value="3">⭐ 3.0</option>
-          <option value="2.5">⭐ 2.5</option>
-          <option value="2">⭐ 2.0</option>
-          <option value="1.5">⭐ 1.5</option>
-          <option value="1">⭐ 1.0</option>
-          <option value="0.5">⭐ 0.5</option>
+          {[...Array(10)].map((_, i) => {
+            const val = (10 - i) * 0.5;
+            return (
+              <option key={val} value={val}>
+                {`⭐ ${val.toFixed(1)}`}
+              </option>
+            );
+          })}
         </select>
 
         <button
