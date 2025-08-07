@@ -63,7 +63,7 @@ export default function Return() {
       <div className="mb-4">
         <label className="block mb-1">📷 바코드 스캔</label>
         <button
-          className="bg-orange-300 hover:bg-orange-400 text-white px-4 py-2 rounded"
+          className="w-full bg-[#fca15f] text-white p-2 rounded hover:bg-[#f98b36]"
           onClick={() => setShowScanner(true)}
         >
           📷 카메라로 스캔하기

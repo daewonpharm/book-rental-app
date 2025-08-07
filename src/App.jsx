@@ -19,20 +19,20 @@ function Navigation() {
 export default function App() {
   return (
     <Router>
-      <div className="w-screen min-h-screen flex flex-col items-center px-4">
-        {/* ✅ 상단 메뉴도 가운데 정렬되도록 max-w 설정 */}
-        <div className="w-full max-w-screen-sm">
-          <Navigation />
-        </div>
+      <div className="w-screen min-h-screen overflow-x-hidden bg-white">
+        <div className="flex flex-col items-center px-4">
+          <div className="w-full max-w-screen-sm">
+            <Navigation />
+          </div>
 
-        {/* ✅ 본문 콘텐츠도 같은 기준으로 정렬 */}
-        <div className="w-full max-w-screen-sm">
-          <Routes>
-            <Route path="/" element={<BookList />} />
-            <Route path="/rent" element={<Rent />} />
-            <Route path="/return" element={<Return />} />
-            <Route path="/admin" element={<Admin />} />
-          </Routes>
+          <div className="w-full max-w-screen-sm">
+            <Routes>
+              <Route path="/" element={<BookList />} />
+              <Route path="/rent" element={<Rent />} />
+              <Route path="/return" element={<Return />} />
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </div>
         </div>
       </div>
     </Router>
