@@ -1,19 +1,81 @@
-// ✅ Rent.jsx & Return.jsx 최종 통일 구조 (모바일 첫 진입 시 너비 꽉 차게 + 정렬 통일)
+// ✅ Rent.jsx 복원 + 최적화: 스캔 시 책 제목 표시 로직 유지 + 정렬 구조 통일
 import React, { useState } from "react";
+import { db } from "../firebase";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  Timestamp,
+  collection,
+  addDoc,
+} from "firebase/firestore";
 import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function Rent() {
+  const [bookCode, setBookCode] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [scanning, setScanning] = useState(false);
 
-  const handleDetected = (code) => {
-    setBookTitle(code);
+  const handleDetected = async (code) => {
+    const normalizedCode = code.toLowerCase();
+    const bookRef = doc(db, "books", normalizedCode);
+    const bookSnap = await getDoc(bookRef);
+
+    if (bookSnap.exists()) {
+      const bookData = bookSnap.data();
+      setBookCode(normalizedCode);
+      setBookTitle(bookData.title);
+    } else {
+      alert("해당 도서를 찾을 수 없습니다.");
+    }
+
     setScanning(false);
   };
 
-  const handleRent = () => {
-    // 대여 로직...
+  const handleRent = async () => {
+    if (!bookCode || !employeeId) {
+      alert("도서와 사번을 모두 입력하세요.");
+      return;
+    }
+
+    const bookRef = doc(db, "books", bookCode);
+    const bookSnap = await getDoc(bookRef);
+
+    if (!bookSnap.exists()) {
+      alert("해당 도서가 존재하지 않습니다.");
+      return;
+    }
+
+    const bookData = bookSnap.data();
+
+    if (bookData.available === false) {
+      alert("이미 대출 중인 도서입니다.");
+      return;
+    }
+
+    const now = Timestamp.now();
+
+    await updateDoc(bookRef, {
+      available: false,
+      rentedBy: employeeId,
+      rentedAt: now,
+      returnedAt: null,
+    });
+
+    await addDoc(collection(db, "rentLogs"), {
+      bookId: bookCode,
+      title: bookData.title,
+      rentedBy: employeeId,
+      rentedAt: now,
+      returnedAt: null,
+    });
+
+    alert("도서가 대여되었습니다.");
+    setBookCode("");
+    setBookTitle("");
+    setEmployeeId("");
+    setScanning(false);
   };
 
   return (

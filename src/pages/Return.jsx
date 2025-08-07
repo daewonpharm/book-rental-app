@@ -1,20 +1,103 @@
-// ✅ Return.jsx 최종 통일 구조 (모바일 첫 진입 시 너비 꽉 차게 + Rent와 구조 일치)
+// ✅ Return.jsx 복원 + 최적화: 바코드 → 책 제목 표시 유지
 import React, { useState } from "react";
+import { db } from "../firebase";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  Timestamp,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function Return() {
+  const [bookCode, setBookCode] = useState("");
   const [title, setTitle] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [rating, setRating] = useState("");
   const [scanning, setScanning] = useState(false);
 
-  const handleDetected = (code) => {
-    setTitle(code);
+  const handleDetected = async (code) => {
+    const normalized = code.toLowerCase();
+    const bookRef = doc(db, "books", normalized);
+    const bookSnap = await getDoc(bookRef);
+
+    if (!bookSnap.exists()) {
+      alert("해당 도서를 찾을 수 없습니다.");
+      return;
+    }
+
+    const bookData = bookSnap.data();
+    setBookCode(normalized);
+    setTitle(bookData.title || "");
     setScanning(false);
   };
 
-  const handleReturn = () => {
-    // 반납 처리 로직...
+  const handleReturn = async () => {
+    if (!bookCode || !employeeId) {
+      alert("도서와 사번을 모두 입력하세요.");
+      return;
+    }
+
+    const bookRef = doc(db, "books", bookCode);
+    const bookSnap = await getDoc(bookRef);
+
+    if (!bookSnap.exists()) {
+      alert("도서를 찾을 수 없습니다.");
+      return;
+    }
+
+    const bookData = bookSnap.data();
+    if (bookData.rentedBy !== employeeId) {
+      alert("이 도서를 대여한 사번이 아닙니다.");
+      return;
+    }
+
+    const now = Timestamp.now();
+
+    await updateDoc(bookRef, {
+      available: true,
+      returnedAt: now,
+    });
+
+    const q = query(
+      collection(db, "rentLogs"),
+      where("bookId", "==", bookCode),
+      where("rentedBy", "==", employeeId),
+      where("returnedAt", "==", null)
+    );
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const logRef = doc(db, "rentLogs", snapshot.docs[0].id);
+      const updateData = { returnedAt: now };
+      if (rating) {
+        updateData.rating = parseFloat(rating);
+      }
+      await updateDoc(logRef, updateData);
+    }
+
+    const ratingSnap = await getDocs(
+      query(
+        collection(db, "rentLogs"),
+        where("bookId", "==", bookCode),
+        where("rating", "!=", null)
+      )
+    );
+    const ratings = ratingSnap.docs.map((doc) => doc.data().rating);
+    const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+
+    await updateDoc(bookRef, {
+      avgRating: parseFloat(avgRating.toFixed(2)),
+    });
+
+    alert("반납 완료!");
+    setBookCode("");
+    setTitle("");
+    setEmployeeId("");
+    setRating("");
   };
 
   return (
