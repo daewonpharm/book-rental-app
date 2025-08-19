@@ -41,9 +41,9 @@ function Navigation() {
       <header className="w-screen sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-gray-200">
         <div className="w-screen flex justify-center">
           <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl flex items-center justify-between px-4 py-3">
-            <button onClick={() => navigate("/")} className="flex items-center gap-2 font-semibold text-gray-900">
-              <span>{Icons.books}</span>
-              <span>DW Library</span>
+            <button onClick={() => navigate("/")} className="flex items-center gap-2 font-semibold text-gray-900" aria-label="대원책방 홈">
+              <img src="/logo.png" alt="대원책방 로고" className="h-6 w-auto md:h-7" />
+              <span>대원책방</span>
             </button>
             <nav className="hidden sm:flex items-center gap-1">
               <TopTab to="/"       label="Home"  icon={Icons.home} />
@@ -92,6 +92,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/books" element={<BookList />} />
+          <Route path="/booklist" element={<BookList />} />
           <Route path="/rent" element={<Rent />} />
           <Route path="/return" element={<Return />} />
           <Route path="/__env" element={<EnvDebug />} />
