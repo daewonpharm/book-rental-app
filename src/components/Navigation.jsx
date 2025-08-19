@@ -1,13 +1,13 @@
 // src/components/BottomNav.jsx (또는 Navigation.jsx)
 import { NavLink } from "react-router-dom";
 
-export default function BottomNav() {
+export default function Navigation() {
   const base = "flex flex-col items-center justify-center gap-1 text-xs font-medium";
   const active = "text-blue-600";
   const inactive = "text-gray-500";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t bg-white">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-white z-50">
       <ul className="grid grid-cols-4 h-16">
         <li>
           <NavLink to="/" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>
