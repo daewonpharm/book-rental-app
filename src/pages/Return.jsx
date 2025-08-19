@@ -10,6 +10,7 @@ import ScannerModal from "../components/ScannerModal";
 import SuccessOverlay from "../components/SuccessOverlay";
 import BarcodeScanner from "../components/BarcodeScanner";
 import { Icons } from "../constants/icons";
+import Navigation from "../components/Navigation";
 
 const ratingOptions = ["5.0","4.5","4.0","3.5","3.0","2.5","2.0","1.5","1.0","0.5"];
 const isValidEmployeeId = (v) => /^\d{6}$/.test(String(v || ""));
@@ -58,7 +59,7 @@ export default function Return() {
       if (!db) throw new Error("Firebase가 초기화되지 않았습니다. /__env를 확인하세요.");
       setLoading(true);
 
-      // 1) 미반납 대여 기록 가져오기 (orderBy 없이: 최신 1건 수동 선택)
+      // 1) 미반납 대여 기록 가져오기
       const qy = query(
         collection(db, "rentLogs"),
         where("bookCode", "==", bookCode),
@@ -124,7 +125,12 @@ export default function Return() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-bold">반납하기 {Icons.return}</h1>
+      {/* 상단 네비게이션 */}
+      <Navigation />
+
+      <h1 className="text-lg font-bold">
+        <span aria-hidden className="mr-2">{Icons.return}</span>반납하기
+      </h1>
       <Stepper current={step} labels={["스캔","사번/평점"]} />
 
       <form onSubmit={onSubmit} className="rounded-2xl bg-white border border-gray-200 p-4 shadow-sm">

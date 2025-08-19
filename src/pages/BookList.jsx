@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { Icons } from "../constants/icons";
+import Navigation from "../components/Navigation";
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
@@ -48,8 +49,13 @@ export default function BookList() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 상단 네비게이션 */}
+      <Navigation />
+
       <header className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">도서목록 {Icons.books}</h1>
+        <h1 className="text-lg font-bold">
+          <span aria-hidden className="mr-2">{Icons.list}</span>도서 목록
+        </h1>
       </header>
 
       <div className="rounded-2xl bg-white border border-gray-200 p-3 shadow-sm">
@@ -63,13 +69,23 @@ export default function BookList() {
           <div className="flex gap-2">
             <button
               onClick={() => setSortByRating((v) => !v)}
-              className={"px-3 py-2 rounded-xl text-sm border " + (sortByRating ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-800 border-gray-300")}
+              className={
+                "px-3 py-2 rounded-xl text-sm border " +
+                (sortByRating
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-800 border-gray-300")
+              }
             >
               {Icons.rating} 평점정렬
             </button>
             <button
               onClick={() => setFilterAvailable((v) => !v)}
-              className={"px-3 py-2 rounded-xl text-sm border " + (filterAvailable ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-800 border-gray-300")}
+              className={
+                "px-3 py-2 rounded-xl text-sm border " +
+                (filterAvailable
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-800 border-gray-300")
+              }
             >
               대출가능만
             </button>
@@ -87,20 +103,37 @@ export default function BookList() {
           const due = b.dueDate || b.dueAt || b.due || null;
           const dueStr = due ? (due.toDate ? due.toDate() : new Date(due)).toLocaleDateString() : "";
           const rating = b.avgRating ? Number(b.avgRating).toFixed(1) : null;
+
           return (
             <article key={b.id} className="p-4">
               <div className="font-semibold text-gray-900 line-clamp-1">{title}</div>
               <div className="mt-1 text-xs text-gray-500 flex items-center gap-2">
-                <span className={"inline-flex items-center rounded-md px-2 py-0.5 text-[11px] border " + (status === "대출중" ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200")}>{status}</span>
+                <span
+                  className={
+                    "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] border " +
+                    (status === "대출중"
+                      ? "bg-red-50 text-red-700 border-red-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200")
+                  }
+                >
+                  {status}
+                </span>
                 {status === "대출중" && dueStr && <span>반납 예정일 {dueStr}</span>}
                 {rating && <span>• {Icons.rating} {rating}</span>}
               </div>
             </article>
           );
         })}
+
         {filtered.length === 0 && (
           <div className="p-6 text-center text-sm text-gray-500">
-            {error ? <>데이터를 불러오지 못했습니다: {error} (<a className="underline" href="/__env">/__env</a>)</> : "검색 결과가 없습니다."}
+            {error ? (
+              <>
+                데이터를 불러오지 못했습니다: {error} (<a className="underline" href="/__env">/__env</a>)
+              </>
+            ) : (
+              "검색 결과가 없습니다."
+            )}
           </div>
         )}
       </div>
