@@ -54,7 +54,7 @@ export default function BookList() {
 
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-bold">
-          <span aria-hidden className="mr-2">{Icons.list}</span>도서 목록
+          <span aria-hidden className="mr-2">{Icons.list}</span>도서목록
         </h1>
       </header>
 
