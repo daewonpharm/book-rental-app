@@ -1,14 +1,14 @@
+// v9 modular Firebase
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { Timestamp } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA-lPz7Ojjpv_o4EIFwbIUpV54ZCsPVeIE",
-  authDomain: "dw-book-rental.firebaseapp.com",
-  projectId: "dw-book-rental",
-  storageBucket: "dw-book-rental.appspot.com",
-  messagingSenderId: "191103254450",
-  appId: "1:191103254450:web:038689a9bcac8e0cfb2eab"
+  apiKey:          import.meta.env.VITE_FB_API_KEY,
+  authDomain:      import.meta.env.VITE_FB_AUTH_DOMAIN,
+  projectId:       import.meta.env.VITE_FB_PROJECT_ID,
+  storageBucket:   import.meta.env.VITE_FB_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FB_MESSAGING_SENDER_ID,
+  appId:           import.meta.env.VITE_FB_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);

@@ -1,154 +1,177 @@
-import React, { useState } from "react";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
+import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
+import {
+  collection, getDocs, doc, getDoc, serverTimestamp, updateDoc,
+  query, where, orderBy, limit
+} from "firebase/firestore";
+import Stepper from "../components/Stepper";
+import Summary from "../components/Summary";
+import ScannerModal from "../components/ScannerModal";
+import SuccessOverlay from "../components/SuccessOverlay";
 import BarcodeScanner from "../components/BarcodeScanner";
 
+const ratingOptions = ["5.0","4.5","4.0","3.5","3.0","2.5","2.0","1.5","1.0","0.5"];
+const isValidEmployeeId = (v) => /^\d{6}$/.test(String(v || ""));
+
 export default function Return() {
+  const [step, setStep] = useState(1);
+  const [employeeId, setEmployeeId] = useState("");
   const [bookCode, setBookCode] = useState("");
   const [bookTitle, setBookTitle] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [rating, setRating] = useState("");
+  const [rating, setRating] = useState(""); // 필수
+  const [books, setBooks] = useState([]);
   const [showScanner, setShowScanner] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const handleScan = async (scannedCode) => {
-    setBookCode(scannedCode);
+  useEffect(() => {
+    (async () => {
+      const snap = await getDocs(collection(db, "books"));
+      setBooks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    })().catch(console.error);
+  }, []);
+
+  const handleDetected = (code) => {
+    const found = books.find((b) => b.id === code || b.bookCode === code);
+    setBookCode(code);
+    setBookTitle(found?.title || found?.name || "");
     setShowScanner(false);
-    const bookRef = doc(db, "books", scannedCode);
-    const bookSnap = await getDoc(bookRef);
-    if (bookSnap.exists()) {
-      setBookTitle(bookSnap.data().title || "");
-    } else {
-      setBookTitle("책 정보 없음");
+    setStep(2);
+  };
+
+  const canSubmit = useMemo(
+    () => isValidEmployeeId(employeeId) && !!bookCode && !!rating,
+    [employeeId, bookCode, rating]
+  );
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+
+    try {
+      setLoading(true);
+      // 1) 대여 로그 조회 (미반납 건)
+      const qy = query(
+        collection(db, "rentLogs"),
+        where("bookCode", "==", bookCode),
+        where("returnedAt", "==", null),
+        orderBy("rentedAt", "desc"),
+        limit(1)
+      );
+      const snap = await getDocs(qy);
+      if (snap.empty) throw new Error("반납 대상 대여 기록을 찾지 못했습니다.");
+      const logDoc = snap.docs[0];
+      const log = logDoc.data();
+
+      // 2) 사번 일치 검증
+      if (String(log.renterId) !== String(employeeId)) {
+        throw new Error("대여자 사번과 일치하지 않습니다. 본인이 대여한 도서만 반납할 수 있어요.");
+      }
+
+      // 3) 로그 업데이트
+      await updateDoc(logDoc.ref, { returnedAt: serverTimestamp(), rating: parseFloat(rating) });
+
+      // 4) 책 상태/평점 업데이트
+      const bookRef = doc(db, "books", bookCode);
+      const bookSnap = await getDoc(bookRef);
+      if (bookSnap.exists()) {
+        const b = bookSnap.data();
+        const prevAvg = Number(b.avgRating || 0);
+        const prevCnt = Number(b.ratingCount || 0);
+        const newCnt = prevCnt + 1;
+        const newAvg = ((prevAvg * prevCnt) + parseFloat(rating)) / newCnt;
+        await updateDoc(bookRef, {
+          status: "대출가능",
+          isAvailable: true,
+          dueDate: null,
+          avgRating: Number(newAvg.toFixed(2)),
+          ratingCount: newCnt,
+        });
+      }
+
+      setSuccess(true); // ✅ 완료 오버레이
+    } catch (err) {
+      alert(err.message || "처리 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleReturn = async () => {
-    if (!bookCode || !employeeId) {
-      alert("도서 제목과 사번을 모두 입력해주세요.");
-      return;
-    }
-
-    // 사번 6자리 유효성 검사
-    if (!/^\d{6}$/.test(employeeId)) {
-      alert("사번은 숫자 6자리여야 합니다.");
-      return;
-    }
-
-    const bookRef = doc(db, "books", bookCode);
-    const bookSnap = await getDoc(bookRef);
-
-    if (!bookSnap.exists()) {
-      alert("해당 도서를 찾을 수 없습니다.");
-      return;
-    }
-
-    const bookData = bookSnap.data();
-    if (bookData.rentedBy !== employeeId) {
-      alert("이 도서를 대여한 사번이 아닙니다.");
-      return;
-    }
-
-    const now = Timestamp.now();
-
-    // 1. 도서 상태 업데이트
-    await updateDoc(bookRef, {
-      available: true,
-      returnedAt: now,
-    });
-
-    // 2. rentLogs 업데이트
-    const logsRef = collection(db, "rentLogs");
-    const q = query(
-      logsRef,
-      where("bookId", "==", bookCode),
-      where("rentedBy", "==", employeeId),
-      where("returnedAt", "==", null)
-    );
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      const logDoc = snapshot.docs[0];
-      await updateDoc(logDoc.ref, {
-        returnedAt: now,
-        rating: parseFloat(rating) || null,
-      });
-    }
-
-    alert("도서가 성공적으로 반납되었습니다.");
-    setBookCode("");
-    setBookTitle("");
-    setEmployeeId("");
-    setRating("");
+  const resetAll = () => {
+    setEmployeeId(""); setBookCode(""); setBookTitle(""); setRating(""); setStep(1); setSuccess(false);
   };
 
   return (
-    <div className="w-full max-w-screen-md px-4">
-      <div className="text-center font-bold text-xl mb-6 mt-6 flex items-center gap-2">
-        📩 도서 반납
-      </div>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-lg font-bold">반납하기 🔁</h1>
+      <Stepper current={step} labels={["스캔","사번/평점"]} />
 
-      <div className="mb-4">
-        <label className="block mb-1">📷 바코드 스캔</label>
-        <button
-          className="w-full bg-[#fca15f] text-white p-2 rounded hover:bg-[#f98b36]"
-          onClick={() => setShowScanner(true)}
-        >
-          📷 카메라로 스캔하기
-        </button>
-        {showScanner && <BarcodeScanner onDetected={handleScan} />}
-      </div>
+      <form onSubmit={onSubmit} className="rounded-2xl bg-white border border-gray-200 p-4 shadow-sm">
+        {step === 1 && (
+          <>
+            <label className="block text-sm font-semibold">📷 바코드 스캔</label>
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="w-full mt-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm font-medium hover:bg-gray-50"
+            >
+              카메라로 스캔하기
+            </button>
+            {showScanner && (
+              <ScannerModal onClose={() => setShowScanner(false)}>
+                <BarcodeScanner onDetected={handleDetected} />
+                <p className="mt-3 text-xs text-gray-500">⚠️ iOS에서는 후면 카메라 고정 등 이슈가 있을 수 있어요. 재시작해 주세요.</p>
+              </ScannerModal>
+            )}
+          </>
+        )}
 
-      <div className="mb-4">
-        <label className="block mb-1">📕 도서 제목</label>
-        <input
-          className="w-full border rounded px-3 py-2 bg-gray-100"
-          value={bookTitle}
-          readOnly
-          placeholder="(스캔 시 자동 표시)"
+        {step === 2 && (
+          <>
+            <Summary code={bookCode} title={bookTitle} onRescan={()=>{ setStep(1); }} />
+            <input
+              value={bookTitle}
+              readOnly
+              placeholder="도서 제목 (스캔 시 자동 표시)"
+              className="block w-full mt-3 rounded-xl border border-gray-300 px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+            />
+
+            <label className="block mt-4 text-sm font-semibold">사번</label>
+            <input
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+              inputMode="numeric" maxLength={6} placeholder="6자리 숫자"
+              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+            />
+
+            <label className="block mt-4 text-sm font-semibold">⭐ 책에 대한 별점을 남겨주세요 (필수)</label>
+            <select
+              value={rating}
+              onChange={(e) => setRating(e.target.value)}
+              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+            >
+              <option value="">별점 선택</option>
+              {ratingOptions.map((r) => (<option key={r} value={r}>{r}</option>))}
+            </select>
+
+            <button
+              type="submit" disabled={!canSubmit || loading}
+              className="mt-6 w-full rounded-xl bg-gray-900 text-white py-3 text-sm font-semibold disabled:opacity-40"
+            >
+              {loading ? "처리 중..." : "반납 등록"}
+            </button>
+          </>
+        )}
+      </form>
+
+      {success && (
+        <SuccessOverlay
+          mode="return"
+          title="반납이 완료되었습니다."
+          desc="고생하셨어요. 다음 독서도 응원할게요!"
+          onClose={resetAll}
         />
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1">👤 사번 6자리</label>
-        <input
-          className="w-full border rounded px-3 py-2"
-          value={employeeId}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (/^\d{0,6}$/.test(value)) {
-              setEmployeeId(value);
-            }
-          }}
-          maxLength={6}
-          placeholder="사번을 입력해주세요"
-          inputMode="numeric"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1">⭐ 책에 대한 별점을 남겨주세요</label>
-        <select
-          className="w-full border rounded px-3 py-2"
-          value={rating}
-          onChange={(e) => setRating(e.target.value)}
-        >
-          <option value="">선택 안 함</option>
-          {[...Array(10)].map((_, i) => {
-            const score = (5 - i * 0.5).toFixed(1);
-            return (
-              <option key={score} value={score}>
-                {`⭐ ${score}`}
-              </option>
-            );
-          })}
-        </select>
-      </div>
-
-      <button
-        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full"
-        onClick={handleReturn}
-      >
-        반납하기
-      </button>
+      )}
     </div>
   );
 }
