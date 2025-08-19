@@ -92,6 +92,7 @@ export default function App() {
           <Route path="/books" element={<BookList />} />
           <Route path="/rent" element={<Rent />} />
           <Route path="/return" element={<Return />} />
+          <Route path="/__env" element={<EnvDebug />} />
         </Routes>
       </BaseLayout>
     </BrowserRouter>
