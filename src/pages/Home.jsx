@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
+import { Icons } from "../constants/icons";
 
 function Stat({ label, value }) {
   return (
@@ -49,9 +50,9 @@ export default function Home() {
 
   const cards = useMemo(
     () => [
-      { title: "도서목록", desc: "제목, 별점, 대출상태를 한눈에", icon: "📌", to: "/books" },
-      { title: "대여하기", desc: "바코드 스캔으로 즉시 대여", icon: "⚡", to: "/rent" },
-      { title: "반납하기", desc: "사번 인증 + 별점 남기기", icon: "⭐", to: "/return" },
+      { title: "도서목록", desc: "제목, 별점, 대출상태를 한눈에", icon: Icons.list,  to: "/books" },
+      { title: "대여하기", desc: "바코드 스캔으로 즉시 대여",      icon: Icons.rent,  to: "/rent" },
+      { title: "반납하기", desc: "사번 인증 + 별점 남기기",        icon: Icons.return,to: "/return" },
     ],
     []
   );

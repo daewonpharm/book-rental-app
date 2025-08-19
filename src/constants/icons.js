@@ -1,0 +1,22 @@
+// 한 곳에서 이모지를 관리합니다.
+export const Icons = {
+  home: "🏠",
+  books: "📚",
+  list: "📋",
+  rent: "📤",
+  return: "📥",
+  scan: "📷",
+  barcode: "🏷️",
+  search: "🔎",
+  sort: "↕️",
+  filter: "🧪",
+  user: "👤",
+  employeeId: "🆔",
+  rating: "⭐",
+  success: "🎉",
+  warning: "⚠️",
+  reminder: "⏰",
+  settings: "⚙️",
+  close: "✖️",
+  back: "⬅️",
+};

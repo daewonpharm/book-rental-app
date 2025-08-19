@@ -9,6 +9,7 @@ import Summary from "../components/Summary";
 import ScannerModal from "../components/ScannerModal";
 import SuccessOverlay from "../components/SuccessOverlay";
 import BarcodeScanner from "../components/BarcodeScanner";
+import { Icons } from "../constants/icons";
 
 const isValidEmployeeId = (v) => /^\d{6}$/.test(String(v || ""));
 
@@ -89,7 +90,7 @@ export default function Rent() {
         dueDate: b.dueDate || null,
       });
 
-      setSuccess(true); // 완료 오버레이
+      setSuccess(true);
     } catch (err) {
       console.error(err);
       alert(err.message || "처리 중 오류가 발생했습니다.");
@@ -104,19 +105,19 @@ export default function Rent() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-bold">대여하기 📷</h1>
+      <h1 className="text-lg font-bold">대여하기 {Icons.rent}</h1>
       <Stepper current={step} labels={["스캔","사번"]} />
 
       <form onSubmit={onSubmit} className="rounded-2xl bg-white border border-gray-200 p-4 shadow-sm">
         {step === 1 && (
           <>
-            <label className="block text-sm font-semibold">📷 바코드 스캔</label>
+            <label className="block text-sm font-semibold">{Icons.scan} 바코드 스캔</label>
             <button
               type="button"
               onClick={() => setShowScanner(true)}
               className="w-full mt-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-base font-medium hover:bg-gray-50"
             >
-              카메라로 스캔하기
+              <span className="mr-1">{Icons.scan}</span>카메라로 스캔하기
             </button>
             {showScanner && (
               <ScannerModal onClose={() => setShowScanner(false)}>
@@ -137,7 +138,7 @@ export default function Rent() {
               className="block w-full mt-3 rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
             />
 
-            <label className="block mt-4 text-sm font-semibold">사번</label>
+            <label className="block mt-4 text-sm font-semibold">사번 {Icons.employeeId}</label>
             <input
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}

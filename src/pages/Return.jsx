@@ -9,6 +9,7 @@ import Summary from "../components/Summary";
 import ScannerModal from "../components/ScannerModal";
 import SuccessOverlay from "../components/SuccessOverlay";
 import BarcodeScanner from "../components/BarcodeScanner";
+import { Icons } from "../constants/icons";
 
 const ratingOptions = ["5.0","4.5","4.0","3.5","3.0","2.5","2.0","1.5","1.0","0.5"];
 const isValidEmployeeId = (v) => /^\d{6}$/.test(String(v || ""));
@@ -57,18 +58,16 @@ export default function Return() {
       if (!db) throw new Error("Firebase가 초기화되지 않았습니다. /__env를 확인하세요.");
       setLoading(true);
 
-      // 1) 미반납 대여 기록 가져오기 (인덱스 없이: 클라이언트에서 최신 1건 선택)
+      // 1) 미반납 대여 기록 가져오기 (orderBy 없이: 최신 1건 수동 선택)
       const qy = query(
         collection(db, "rentLogs"),
         where("bookCode", "==", bookCode),
         where("returnedAt", "==", null)
-        // orderBy("rentedAt","desc")  // 인덱스 필요 → 주석
       );
       const snap = await getDocs(qy);
       if (snap.empty) throw new Error("반납 대상 대여 기록을 찾지 못했습니다.");
 
       const candidates = snap.docs.map(d => ({ ref: d.ref, ...d.data() }));
-      // 최신 1건 선택
       candidates.sort((a, b) => {
         const ta = a.rentedAt?.toMillis ? a.rentedAt.toMillis() : 0;
         const tb = b.rentedAt?.toMillis ? b.rentedAt.toMillis() : 0;
@@ -77,12 +76,10 @@ export default function Return() {
       const logRef = candidates[0].ref;
       const log = candidates[0];
 
-      // 2) 사번 일치 검증
       if (String(log.renterId) !== String(employeeId)) {
         throw new Error("대여자 사번과 일치하지 않습니다. 본인이 대여한 도서만 반납할 수 있어요.");
       }
 
-      // 3) 로그 업데이트
       await updateDoc(logRef, { returnedAt: serverTimestamp(), rating: parseFloat(rating) });
 
       // 4) 책 상태/평점 업데이트 (문서ID ↔ bookCode 필드 역검색)
@@ -112,7 +109,7 @@ export default function Return() {
         });
       }
 
-      setSuccess(true); // 완료 오버레이
+      setSuccess(true);
     } catch (err) {
       console.error(err);
       alert(err.message || "처리 중 오류가 발생했습니다.");
@@ -127,19 +124,19 @@ export default function Return() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-bold">반납하기 🔁</h1>
+      <h1 className="text-lg font-bold">반납하기 {Icons.return}</h1>
       <Stepper current={step} labels={["스캔","사번/평점"]} />
 
       <form onSubmit={onSubmit} className="rounded-2xl bg-white border border-gray-200 p-4 shadow-sm">
         {step === 1 && (
           <>
-            <label className="block text-sm font-semibold">📷 바코드 스캔</label>
+            <label className="block text-sm font-semibold">{Icons.scan} 바코드 스캔</label>
             <button
               type="button"
               onClick={() => setShowScanner(true)}
               className="w-full mt-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-base font-medium hover:bg-gray-50"
             >
-              카메라로 스캔하기
+              <span className="mr-1">{Icons.scan}</span>카메라로 스캔하기
             </button>
             {showScanner && (
               <ScannerModal onClose={() => setShowScanner(false)}>
@@ -160,7 +157,7 @@ export default function Return() {
               className="block w-full mt-3 rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
             />
 
-            <label className="block mt-4 text-sm font-semibold">사번</label>
+            <label className="block mt-4 text-sm font-semibold">사번 {Icons.employeeId}</label>
             <input
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
@@ -168,7 +165,7 @@ export default function Return() {
               className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
             />
 
-            <label className="block mt-4 text-sm font-semibold">⭐ 책에 대한 별점을 남겨주세요 (필수)</label>
+            <label className="block mt-4 text-sm font-semibold">{Icons.rating} 책에 대한 별점을 남겨주세요 (필수)</label>
             <select
               value={rating}
               onChange={(e) => setRating(e.target.value)}

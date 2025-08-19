@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
+import { Icons } from "../constants/icons";
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
@@ -48,7 +49,7 @@ export default function BookList() {
   return (
     <div className="flex flex-col gap-4">
       <header className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">도서목록 📚</h1>
+        <h1 className="text-lg font-bold">도서목록 {Icons.books}</h1>
       </header>
 
       <div className="rounded-2xl bg-white border border-gray-200 p-3 shadow-sm">
@@ -64,7 +65,7 @@ export default function BookList() {
               onClick={() => setSortByRating((v) => !v)}
               className={"px-3 py-2 rounded-xl text-sm border " + (sortByRating ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-800 border-gray-300")}
             >
-              ⭐ 평점정렬
+              {Icons.rating} 평점정렬
             </button>
             <button
               onClick={() => setFilterAvailable((v) => !v)}
@@ -92,7 +93,7 @@ export default function BookList() {
               <div className="mt-1 text-xs text-gray-500 flex items-center gap-2">
                 <span className={"inline-flex items-center rounded-md px-2 py-0.5 text-[11px] border " + (status === "대출중" ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200")}>{status}</span>
                 {status === "대출중" && dueStr && <span>반납 예정일 {dueStr}</span>}
-                {rating && <span>• ⭐ {rating}</span>}
+                {rating && <span>• {Icons.rating} {rating}</span>}
               </div>
             </article>
           );
