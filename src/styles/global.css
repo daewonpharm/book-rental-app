@@ -11,18 +11,13 @@
   font-display: swap;
 }
 
-/* ⛔️ 여기에 있던 Tossface @font-face 블록은 삭제하고… */
-/* ✅ CDN에서 가져오기 */
-@import url('https://cdn.jsdelivr.net/gh/toss/tossface/dist/tossface.css');
+/* Tossface는 index.html에서 CDN으로 로드됨(여기선 @import 없음) */
 
-/* 전역 적용 */
 html, body, button, input, select, textarea {
   font-family: var(--ui-font-merged);
 }
 
-/* (그 외에 프로젝트용 공통 스타일이 있으면 아래 계속…) */
-
-/* 완료 오버레이 애니메이션 등도 여기 있다면 그대로 유지 */
+/* 완료 오버레이 애니메이션 */
 @keyframes fadeBackdrop { from{opacity:0} to{opacity:1} }
 @keyframes bookIn {
   0% { transform: translateY(-40vh) scale(.9); opacity:0; }

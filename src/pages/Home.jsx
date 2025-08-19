@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 
@@ -12,33 +13,49 @@ function Stat({ label, value }) {
 }
 
 export default function Home() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ total: 0, renting: 0, available: 0, dueSoon: 0 });
 
   useEffect(() => {
     (async () => {
-      const snap = await getDocs(collection(db, "books"));
-      let total = 0, renting = 0, available = 0, dueSoon = 0;
-      const now = new Date(); const soon = new Date(now); soon.setDate(now.getDate() + 3);
-      snap.forEach(d => {
-        total += 1;
-        const b = d.data();
-        const status = b.status || (b.isAvailable === false ? "대출중" : "대출가능");
-        if (status === "대출중") renting += 1; else available += 1;
-        const due = b.dueDate || b.dueAt || b.due || null;
-        if (due) {
-          const dt = due.toDate ? due.toDate() : new Date(due);
-          if (dt >= now && dt <= soon) dueSoon += 1;
-        }
-      });
-      setStats({ total, renting, available, dueSoon });
-    })().catch(console.error);
+      try {
+        const snap = await getDocs(collection(db, "books"));
+        let total = 0,
+          renting = 0,
+          available = 0,
+          dueSoon = 0;
+        const now = new Date();
+        const soon = new Date(now);
+        soon.setDate(now.getDate() + 3);
+
+        snap.forEach((d) => {
+          total += 1;
+          const b = d.data();
+          const status = b.status || (b.isAvailable === false ? "대출중" : "대출가능");
+          if (status === "대출중") renting += 1;
+          else available += 1;
+          const due = b.dueDate || b.dueAt || b.due || null;
+          if (due) {
+            const dt = due.toDate ? due.toDate() : new Date(due);
+            if (dt >= now && dt <= soon) dueSoon += 1;
+          }
+        });
+        setStats({ total, renting, available, dueSoon });
+      } catch (e) {
+        console.error("[Home] Firestore error:", e);
+        // 실패해도 화면은 보이도록 기본값 유지
+      }
+    })();
   }, []);
 
-  const cards = useMemo(() => [
-    { title: "도서목록", desc: "제목, 별점, 대출상태를 한눈에", icon: "📌" },
-    { title: "대여하기",  desc: "바코드 스캔으로 즉시 대여",   icon: "⚡"  },
-    { title: "반납하기",  desc: "사번 인증 + 별점 남기기",     icon: "⭐"  },
-  ], []);
+  const cards = useMemo(
+    () => [
+      { title: "도서목록", desc: "제목, 별점, 대출상태를 한눈에", icon: "📌", to: "/books" },
+      { title: "대여하기", desc: "바코드 스캔으로 즉시 대여", icon: "⚡", to: "/rent" },
+      { title: "반납하기", desc: "사번 인증 + 별점 남기기", icon: "⭐", to: "/return" },
+    ],
+    []
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,11 +69,16 @@ export default function Home() {
           <Stat label="반납 임박(3일)" value={stats.dueSoon} />
         </div>
       </section>
+
       <section>
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {cards.map((c) => (
-            <div key={c.title} className="group text-left rounded-2xl bg-white border border-gray-200 p-4 hover:shadow-md transition shadow-sm">
+            <button
+              key={c.title}
+              onClick={() => navigate(c.to)}
+              className="group text-left rounded-2xl bg-white border border-gray-200 p-4 hover:shadow-md transition shadow-sm w-full"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="rounded-xl p-2 bg-gray-100 text-gray-800">{c.icon}</div>
@@ -67,7 +89,7 @@ export default function Home() {
                 </div>
                 <span className="text-gray-400 group-hover:translate-x-0.5 transition">→</span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>
