@@ -36,3 +36,10 @@ html, body, button, input, select, textarea {
 .overlay-title{ font-weight:700; font-size:18px; color:#111827; }
 .overlay-desc{ margin-top:6px; font-size:13px; color:#6b7280; }
 .overlay-cta{ margin-top:18px; width:100%; border:none; border-radius:12px; background:var(--primary); color:#fff; padding:13px 16px; font-weight:700; font-size:15px; }
+
+/* iOS Safari: 입력 포커스 시 자동 확대 방지 */
+@media (max-width: 640px) {
+  input, select, textarea, button {
+    font-size: 16px !important;
+  }
+}

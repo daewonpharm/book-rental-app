@@ -74,7 +74,6 @@ export default function Rent() {
       await setDoc(logRef, {
         logId: logRef.id,
         bookCode,
-        // bookId: bookRef.id, // 필요하면 필드 추가
         title: b.title || bookTitle || bookCode,
         renterId: employeeId,
         rentedAt: serverTimestamp(),
@@ -115,7 +114,7 @@ export default function Rent() {
             <button
               type="button"
               onClick={() => setShowScanner(true)}
-              className="w-full mt-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm font-medium hover:bg-gray-50"
+              className="w-full mt-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-base font-medium hover:bg-gray-50"
             >
               카메라로 스캔하기
             </button>
@@ -130,12 +129,12 @@ export default function Rent() {
 
         {step === 2 && (
           <>
-            <Summary code={bookCode} title={bookTitle} onRescan={()=>{ setStep(1); }} />
+            <Summary title={bookTitle} onRescan={() => { setStep(1); }} />
             <input
               value={bookTitle}
               readOnly
               placeholder="도서 제목 (스캔 시 자동 표시)"
-              className="block w-full mt-3 rounded-xl border border-gray-300 px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+              className="block w-full mt-3 rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
             />
 
             <label className="block mt-4 text-sm font-semibold">사번</label>
@@ -143,7 +142,7 @@ export default function Rent() {
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
               inputMode="numeric" maxLength={6} placeholder="6자리 숫자"
-              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
             />
 
             <button

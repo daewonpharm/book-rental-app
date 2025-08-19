@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import {
   collection, getDocs, doc, getDoc, serverTimestamp, updateDoc,
-  query, where, orderBy, limit
+  query, where, limit
 } from "firebase/firestore";
 import Stepper from "../components/Stepper";
 import Summary from "../components/Summary";
@@ -57,18 +57,25 @@ export default function Return() {
       if (!db) throw new Error("Firebase가 초기화되지 않았습니다. /__env를 확인하세요.");
       setLoading(true);
 
-      // 1) 대여 로그 조회 (미반납 건)
+      // 1) 미반납 대여 기록 가져오기 (인덱스 없이: 클라이언트에서 최신 1건 선택)
       const qy = query(
         collection(db, "rentLogs"),
         where("bookCode", "==", bookCode),
-        where("returnedAt", "==", null),
-        orderBy("rentedAt", "desc"),
-        limit(1)
+        where("returnedAt", "==", null)
+        // orderBy("rentedAt","desc")  // 인덱스 필요 → 주석
       );
       const snap = await getDocs(qy);
       if (snap.empty) throw new Error("반납 대상 대여 기록을 찾지 못했습니다.");
-      const logDoc = snap.docs[0];
-      const log = logDoc.data();
+
+      const candidates = snap.docs.map(d => ({ ref: d.ref, ...d.data() }));
+      // 최신 1건 선택
+      candidates.sort((a, b) => {
+        const ta = a.rentedAt?.toMillis ? a.rentedAt.toMillis() : 0;
+        const tb = b.rentedAt?.toMillis ? b.rentedAt.toMillis() : 0;
+        return tb - ta;
+      });
+      const logRef = candidates[0].ref;
+      const log = candidates[0];
 
       // 2) 사번 일치 검증
       if (String(log.renterId) !== String(employeeId)) {
@@ -76,7 +83,7 @@ export default function Return() {
       }
 
       // 3) 로그 업데이트
-      await updateDoc(logDoc.ref, { returnedAt: serverTimestamp(), rating: parseFloat(rating) });
+      await updateDoc(logRef, { returnedAt: serverTimestamp(), rating: parseFloat(rating) });
 
       // 4) 책 상태/평점 업데이트 (문서ID ↔ bookCode 필드 역검색)
       let bookRef = doc(db, "books", bookCode);
@@ -97,8 +104,8 @@ export default function Return() {
         const newAvg = ((prevAvg * prevCnt) + parseFloat(rating)) / newCnt;
         await updateDoc(bookRef, {
           status: "대출가능",
-          isAvailable: true,   // 신 스키마
-          available: true,     // 구 스키마 호환
+          isAvailable: true,
+          available: true,
           dueDate: null,
           avgRating: Number(newAvg.toFixed(2)),
           ratingCount: newCnt,
@@ -130,7 +137,7 @@ export default function Return() {
             <button
               type="button"
               onClick={() => setShowScanner(true)}
-              className="w-full mt-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm font-medium hover:bg-gray-50"
+              className="w-full mt-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-base font-medium hover:bg-gray-50"
             >
               카메라로 스캔하기
             </button>
@@ -145,12 +152,12 @@ export default function Return() {
 
         {step === 2 && (
           <>
-            <Summary code={bookCode} title={bookTitle} onRescan={()=>{ setStep(1); }} />
+            <Summary title={bookTitle} onRescan={() => { setStep(1); }} />
             <input
               value={bookTitle}
               readOnly
               placeholder="도서 제목 (스캔 시 자동 표시)"
-              className="block w-full mt-3 rounded-xl border border-gray-300 px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+              className="block w-full mt-3 rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
             />
 
             <label className="block mt-4 text-sm font-semibold">사번</label>
@@ -158,14 +165,14 @@ export default function Return() {
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
               inputMode="numeric" maxLength={6} placeholder="6자리 숫자"
-              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
             />
 
             <label className="block mt-4 text-sm font-semibold">⭐ 책에 대한 별점을 남겨주세요 (필수)</label>
             <select
               value={rating}
               onChange={(e) => setRating(e.target.value)}
-              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
             >
               <option value="">별점 선택</option>
               {ratingOptions.map((r) => (<option key={r} value={r}>{r}</option>))}
