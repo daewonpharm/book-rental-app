@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import {
-  collection, getDocs, doc, getDoc, serverTimestamp, setDoc, updateDoc
+  collection, getDocs, doc, getDoc, serverTimestamp, setDoc, updateDoc,
+  query, where, limit
 } from "firebase/firestore";
 import Stepper from "../components/Stepper";
 import Summary from "../components/Summary";
@@ -23,9 +24,14 @@ export default function Rent() {
 
   useEffect(() => {
     (async () => {
-      const snap = await getDocs(collection(db, "books"));
-      setBooks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    })().catch(console.error);
+      if (!db) return;
+      try {
+        const snap = await getDocs(collection(db, "books"));
+        setBooks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (e) {
+        console.error("[Rent] Firestore error:", e);
+      }
+    })();
   }, []);
 
   const handleDetected = (code) => {
@@ -42,18 +48,33 @@ export default function Rent() {
     e.preventDefault();
     if (!canSubmit) return;
     try {
+      if (!db) throw new Error("Firebase가 초기화되지 않았습니다. /__env를 확인하세요.");
       setLoading(true);
-      const bookRef = doc(db, "books", bookCode);
-      const bookSnap = await getDoc(bookRef);
-      if (!bookSnap.exists()) throw new Error("존재하지 않는 도서 코드입니다.");
+
+      // books 문서 찾기 (문서ID → bookCode 필드 역검색까지)
+      let bookRef = doc(db, "books", bookCode);
+      let bookSnap = await getDoc(bookRef);
+      if (!bookSnap.exists()) {
+        const qy = query(collection(db, "books"), where("bookCode", "==", bookCode), limit(1));
+        const qs = await getDocs(qy);
+        if (qs.empty) throw new Error("존재하지 않는 도서 코드입니다.");
+        bookRef = qs.docs[0].ref;
+        bookSnap = qs.docs[0];
+      }
+
       const b = bookSnap.data();
-      const status = b.status || (b.isAvailable === false ? "대출중" : "대출가능");
+      const isAvail = typeof b.isAvailable === "boolean" ? b.isAvailable
+                    : typeof b.available === "boolean" ? b.available
+                    : true;
+      const status = b.status || (isAvail ? "대출가능" : "대출중");
       if (status === "대출중") throw new Error("이미 대출 중인 도서입니다.");
 
+      // 대여 로그 생성
       const logRef = doc(collection(db, "rentLogs"));
       await setDoc(logRef, {
         logId: logRef.id,
         bookCode,
+        // bookId: bookRef.id, // 필요하면 필드 추가
         title: b.title || bookTitle || bookCode,
         renterId: employeeId,
         rentedAt: serverTimestamp(),
@@ -61,10 +82,17 @@ export default function Rent() {
         rating: null,
       });
 
-      await updateDoc(bookRef, { status: "대출중", isAvailable: false, dueDate: b.dueDate || null });
+      // 책 상태 업데이트 (두 스키마 동시 반영)
+      await updateDoc(bookRef, {
+        status: "대출중",
+        isAvailable: false,
+        available: false,
+        dueDate: b.dueDate || null,
+      });
 
-      setSuccess(true); // ✅ 오버레이로 완료 피드백
+      setSuccess(true); // 완료 오버레이
     } catch (err) {
+      console.error(err);
       alert(err.message || "처리 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);

@@ -26,9 +26,14 @@ export default function Return() {
 
   useEffect(() => {
     (async () => {
-      const snap = await getDocs(collection(db, "books"));
-      setBooks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    })().catch(console.error);
+      if (!db) return;
+      try {
+        const snap = await getDocs(collection(db, "books"));
+        setBooks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (e) {
+        console.error("[Return] Firestore error:", e);
+      }
+    })();
   }, []);
 
   const handleDetected = (code) => {
@@ -49,7 +54,9 @@ export default function Return() {
     if (!canSubmit) return;
 
     try {
+      if (!db) throw new Error("Firebase가 초기화되지 않았습니다. /__env를 확인하세요.");
       setLoading(true);
+
       // 1) 대여 로그 조회 (미반납 건)
       const qy = query(
         collection(db, "rentLogs"),
@@ -71,9 +78,17 @@ export default function Return() {
       // 3) 로그 업데이트
       await updateDoc(logDoc.ref, { returnedAt: serverTimestamp(), rating: parseFloat(rating) });
 
-      // 4) 책 상태/평점 업데이트
-      const bookRef = doc(db, "books", bookCode);
-      const bookSnap = await getDoc(bookRef);
+      // 4) 책 상태/평점 업데이트 (문서ID ↔ bookCode 필드 역검색)
+      let bookRef = doc(db, "books", bookCode);
+      let bookSnap = await getDoc(bookRef);
+      if (!bookSnap.exists()) {
+        const qb = query(collection(db, "books"), where("bookCode", "==", bookCode), limit(1));
+        const qbs = await getDocs(qb);
+        if (qbs.empty) throw new Error("도서 문서를 찾지 못했습니다.");
+        bookRef = qbs.docs[0].ref;
+        bookSnap = qbs.docs[0];
+      }
+
       if (bookSnap.exists()) {
         const b = bookSnap.data();
         const prevAvg = Number(b.avgRating || 0);
@@ -82,15 +97,17 @@ export default function Return() {
         const newAvg = ((prevAvg * prevCnt) + parseFloat(rating)) / newCnt;
         await updateDoc(bookRef, {
           status: "대출가능",
-          isAvailable: true,
+          isAvailable: true,   // 신 스키마
+          available: true,     // 구 스키마 호환
           dueDate: null,
           avgRating: Number(newAvg.toFixed(2)),
           ratingCount: newCnt,
         });
       }
 
-      setSuccess(true); // ✅ 완료 오버레이
+      setSuccess(true); // 완료 오버레이
     } catch (err) {
+      console.error(err);
       alert(err.message || "처리 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);

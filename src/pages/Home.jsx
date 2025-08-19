@@ -18,12 +18,10 @@ export default function Home() {
 
   useEffect(() => {
     (async () => {
+      if (!db) return;
       try {
         const snap = await getDocs(collection(db, "books"));
-        let total = 0,
-          renting = 0,
-          available = 0,
-          dueSoon = 0;
+        let total = 0, renting = 0, available = 0, dueSoon = 0;
         const now = new Date();
         const soon = new Date(now);
         soon.setDate(now.getDate() + 3);
@@ -31,9 +29,11 @@ export default function Home() {
         snap.forEach((d) => {
           total += 1;
           const b = d.data();
-          const status = b.status || (b.isAvailable === false ? "대출중" : "대출가능");
-          if (status === "대출중") renting += 1;
-          else available += 1;
+          const isAvail = typeof b.isAvailable === "boolean" ? b.isAvailable
+                        : typeof b.available === "boolean" ? b.available
+                        : true;
+          const status = b.status || (isAvail ? "대출가능" : "대출중");
+          if (status === "대출중") renting += 1; else available += 1;
           const due = b.dueDate || b.dueAt || b.due || null;
           if (due) {
             const dt = due.toDate ? due.toDate() : new Date(due);
@@ -43,7 +43,6 @@ export default function Home() {
         setStats({ total, renting, available, dueSoon });
       } catch (e) {
         console.error("[Home] Firestore error:", e);
-        // 실패해도 화면은 보이도록 기본값 유지
       }
     })();
   }, []);

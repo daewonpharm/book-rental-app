@@ -4,16 +4,26 @@ import { collection, getDocs } from "firebase/firestore";
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [sortByRating, setSortByRating] = useState(false);
   const [filterAvailable, setFilterAvailable] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const snapshot = await getDocs(collection(db, "books"));
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setBooks(data);
-    })().catch(console.error);
+      if (!db) {
+        setError("Firebase가 초기화되지 않았습니다. /__env에서 환경변수를 확인하세요.");
+        return;
+      }
+      try {
+        const snapshot = await getDocs(collection(db, "books"));
+        const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setBooks(data);
+      } catch (e) {
+        console.error("[BookList] Firestore error:", e);
+        setError(e?.message || String(e));
+      }
+    })();
   }, []);
 
   const filtered = useMemo(() => {
@@ -24,7 +34,10 @@ export default function BookList() {
     }
     if (filterAvailable) {
       list = list.filter((b) => {
-        const status = b.status || (b.isAvailable === false ? "대출중" : "대출가능");
+        const isAvail = typeof b.isAvailable === "boolean" ? b.isAvailable
+                       : typeof b.available === "boolean" ? b.available
+                       : true;
+        const status = b.status || (isAvail ? "대출가능" : "대출중");
         return status !== "대출중";
       });
     }
@@ -66,7 +79,10 @@ export default function BookList() {
       <div className="rounded-2xl bg-white border border-gray-200 shadow-sm divide-y">
         {filtered.map((b) => {
           const title = b.title || b.name || b.id;
-          const status = b.status || (b.isAvailable === false ? "대출중" : "대출가능");
+          const isAvail = typeof b.isAvailable === "boolean" ? b.isAvailable
+                        : typeof b.available === "boolean" ? b.available
+                        : true;
+          const status = b.status || (isAvail ? "대출가능" : "대출중");
           const due = b.dueDate || b.dueAt || b.due || null;
           const dueStr = due ? (due.toDate ? due.toDate() : new Date(due)).toLocaleDateString() : "";
           const rating = b.avgRating ? Number(b.avgRating).toFixed(1) : null;
@@ -82,7 +98,9 @@ export default function BookList() {
           );
         })}
         {filtered.length === 0 && (
-          <div className="p-6 text-center text-sm text-gray-500">검색 결과가 없습니다.</div>
+          <div className="p-6 text-center text-sm text-gray-500">
+            {error ? <>데이터를 불러오지 못했습니다: {error} (<a className="underline" href="/__env">/__env</a>)</> : "검색 결과가 없습니다."}
+          </div>
         )}
       </div>
     </div>
