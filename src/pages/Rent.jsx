@@ -10,7 +10,6 @@ import ScannerModal from "../components/ScannerModal";
 import SuccessOverlay from "../components/SuccessOverlay";
 import BarcodeScanner from "../components/BarcodeScanner";
 import { Icons } from "../constants/icons";
-import Navigation from "../components/Navigation";
 
 const isValidEmployeeId = (v) => /^\d{6}$/.test(String(v || ""));
 
@@ -107,7 +106,6 @@ export default function Rent() {
   return (
     <div className="flex flex-col gap-4">
       {/* 상단 네비게이션 */}
-      <Navigation />
 
       <h1 className="text-lg font-bold">
         <span aria-hidden className="mr-2">{Icons.rent}</span>대여하기

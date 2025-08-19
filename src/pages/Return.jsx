@@ -10,7 +10,6 @@ import ScannerModal from "../components/ScannerModal";
 import SuccessOverlay from "../components/SuccessOverlay";
 import BarcodeScanner from "../components/BarcodeScanner";
 import { Icons } from "../constants/icons";
-import Navigation from "../components/Navigation";
 
 const ratingOptions = ["5.0","4.5","4.0","3.5","3.0","2.5","2.0","1.5","1.0","0.5"];
 const isValidEmployeeId = (v) => /^\d{6}$/.test(String(v || ""));
@@ -126,7 +125,6 @@ export default function Return() {
   return (
     <div className="flex flex-col gap-4">
       {/* 상단 네비게이션 */}
-      <Navigation />
 
       <h1 className="text-lg font-bold">
         <span aria-hidden className="mr-2">{Icons.return}</span>반납하기
