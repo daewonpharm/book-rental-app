@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import BookList from "./pages/BookList";
 import Rent from "./pages/Rent";
 import Return from "./pages/Return";
+import EnvDebug from "./pages/EnvDebug"; // ✅ 추가
 import "./styles/global.css";
 
 /** 공통 레이아웃 */
@@ -92,7 +93,7 @@ export default function App() {
           <Route path="/books" element={<BookList />} />
           <Route path="/rent" element={<Rent />} />
           <Route path="/return" element={<Return />} />
-          <Route path="/__env" element={<EnvDebug />} />
+          <Route path="/__env" element={<EnvDebug />} /> {/* ✅ 디버그 라우트 */}
         </Routes>
       </BaseLayout>
     </BrowserRouter>
