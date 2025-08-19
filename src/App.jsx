@@ -47,7 +47,7 @@ function Navigation() {
             </button>
             <nav className="hidden sm:flex items-center gap-1">
               <TopTab to="/"       label="Home"  icon={Icons.home} />
-              <TopTab to="/books"  label="목록"   icon={Icons.books} />
+              <TopTab to="/books"  label="도서목록"   icon={Icons.list} />
               <TopTab to="/rent"   label="대여"   icon={Icons.rent} />
               <TopTab to="/return" label="반납"   icon={Icons.return} />
             </nav>
@@ -60,7 +60,7 @@ function Navigation() {
         <div className="grid grid-cols-4 max-w-md mx-auto">
           {[
             { to: "/",      label: "Home", icon: Icons.home },
-            { to: "/books", label: "목록",  icon: Icons.books },
+            { to: "/books", label: "도서목록",  icon: Icons.list },
             { to: "/rent",  label: "대여",  icon: Icons.rent },
             { to: "/return",label: "반납",  icon: Icons.return },
           ].map((item) => (
