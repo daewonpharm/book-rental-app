@@ -43,3 +43,12 @@ html, body, button, input, select, textarea {
     font-size: 16px !important;
   }
 }
+
+/* 접근성: OS에서 '감소된 동작'이어도 이 오버레이는 애니 허용 */
+@media (prefers-reduced-motion: reduce) {
+  :not(.so-allow-motion) .so-fly-in,
+  :not(.so-allow-motion) .so-fly-out,
+  :not(.so-allow-motion) .so-pop {
+    animation: none !important;
+  }
+}
