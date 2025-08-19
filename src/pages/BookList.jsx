@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { Icons } from "../constants/icons";
-import Navigation from "../components/Navigation";
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
@@ -50,7 +49,6 @@ export default function BookList() {
   return (
     <div className="flex flex-col gap-4">
       {/* 상단 네비게이션 */}
-      <Navigation />
 
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-bold">
