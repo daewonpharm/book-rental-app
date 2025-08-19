@@ -1,4 +1,4 @@
-// Vite + Firebase Modular SDK
+// src/firebase.js
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
@@ -11,21 +11,28 @@ const cfg = {
   appId:             import.meta.env.VITE_FB_APP_ID,
 };
 
-// 누락 점검 (배포에서 "빈화면" 방지)
-const missing = Object.entries(cfg).filter(([,v]) => !v).map(([k]) => k);
-if (missing.length) {
-  const msg = `[firebase] Missing env keys: ${missing.join(", ")}`;
-  // 콘솔에서 바로 보이게
-  console.error(msg);
-  // throw 해서 ErrorBoundary가 메시지 보여주도록 (없으면 콘솔만)
-  throw new Error(msg);
+// 어떤 키가 비었는지 기록만 남긴다(던지지 않음)
+export const FIREBASE_MISSING_KEYS =
+  Object.entries(cfg).filter(([, v]) => !v).map(([k]) => k);
+
+if (FIREBASE_MISSING_KEYS.length) {
+  console.error("[firebase] Missing env keys:", FIREBASE_MISSING_KEYS.join(", "));
 }
 
-const app = initializeApp(cfg);
-export const db = getFirestore(app);
+let app = null;
+let db  = null;
+try {
+  app = initializeApp(cfg);
+  db  = getFirestore(app);
+} catch (e) {
+  console.error("[firebase] initialize failed:", e);
+}
 
-// /__env 진단에서 마스킹 출력용
+// 필요에 따라 사용할 수 있게 그대로 export
+export { db };
+
+// 진단용(마스킹)
 export function getSafeFirebaseConfig() {
   const mask = (v) => !v ? "" : (String(v).length > 8 ? `${String(v).slice(0,4)}…${String(v).slice(-3)}` : v);
-  return Object.fromEntries(Object.entries(cfg).map(([k,v]) => [k, mask(v)]));
+  return Object.fromEntries(Object.entries(cfg).map(([k, v]) => [k, mask(v)]));
 }
