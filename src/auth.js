@@ -1,78 +1,41 @@
 // src/auth.js
-import { initializeApp, getApps, getApp } from "firebase/app";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithRedirect,
-  getRedirectResult,
-  setPersistence,
-  browserLocalPersistence,
-  setLogLevel,
-} from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "./firebase";
 
-// === 네가 준 config 그대로 (storageBucket 표준값으로 교정) ===
-const firebaseConfig = {
-  apiKey: "AIzaSyA-lPz7Ojjpv_o4EIFwbIUpV54ZCsPVeIE",
-  authDomain: "dw-book-rental.firebaseapp.com",
-  projectId: "dw-book-rental",
-  storageBucket: "dw-book-rental.appspot.com",
-  messagingSenderId: "191103254450",
-  appId: "1:191103254450:web:038689a9bcac8e0cfb2eab",
-};
+// 1) 하드코딩 관리자 (빠른 가드)
+export const ADMIN_UIDS = new Set([
+  "FPXqlof4M3V9kB80nMMkZNkDTn52", // <- 당신 UID
+]);
 
-// ---- Singleton App/Auth ----
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export function watchAuth(setUser) {
+  // 컴포넌트에서 사용자 상태 구독
+  return onAuthStateChanged(auth, (user) => setUser(user));
+}
 
-// 디버그 로깅 강화
-setLogLevel("debug");
-console.log("[Auth] config check:", {
-  authDomain: app.options.authDomain,
-  origin: window.location.origin,
-});
-
-// ---- Provider ----
-const provider = new GoogleAuthProvider();
-provider.setCustomParameters({ prompt: "select_account" });
-
-// ---- 로그인: '항상' Redirect만 사용 (팝업 경로 제거) ----
 export async function login() {
-  try {
-    await setPersistence(auth, browserLocalPersistence);
-  } catch (e) {
-    console.error("[Auth] setPersistence error:", e);
-  }
-  console.log("[Auth] using redirect (forced)");
-  await signInWithRedirect(auth, provider);
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  return signInWithPopup(auth, provider);
 }
 
-// ---- 로그아웃 ----
 export function logout() {
-  return auth.signOut();
+  return signOut(auth);
 }
 
-// ---- 상태 감시 ----
-export function watchAuth(callback) {
-  return onAuthStateChanged(auth, (user) => {
-    console.log("[Auth] onAuthStateChanged:", user);
-    callback(user);
-  });
+export function isHardcodedAdmin(user) {
+  return !!user && ADMIN_UIDS.has(user.uid);
 }
 
-// ---- 리다이렉트 결과 1회 회수 ----
-export async function consumeRedirectOnce() {
-  try {
-    const res = await getRedirectResult(auth);
-    if (res?.user) {
-      console.log("[Auth] getRedirectResult user:", {
-        uid: res.user.uid,
-        email: res.user.email,
-      });
-    } else {
-      console.log("[Auth] no redirect result");
-    }
-  } catch (e) {
-    console.error("[Auth] getRedirectResult error:", e);
-  }
+// 2) Firestore roles 기반(확장형)
+export async function fetchMyRole(user) {
+  if (!user) return null;
+  const ref = doc(db, "roles", user.uid); // 문서 ID = uid
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null; // { role: 'admin', ... }
+}
+
+export async function isFirestoreAdmin(user) {
+  const role = await fetchMyRole(user);
+  return role?.role === "admin" || role?.admin === true;
 }
