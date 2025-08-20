@@ -11,49 +11,67 @@ import {
   browserLocalPersistence,
 } from "firebase/auth";
 
+// ⬇️ 실제 프로젝트 설정으로 교체
 const firebaseConfig = {
-  apiKey: "…",
-  authDomain: "…",           // 꼭 프로젝트와 도메인 맞는지 확인
-  projectId: "…",
-  appId: "…",
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  appId: "YOUR_APP_ID",
 };
 
+// ---- Singleton App/Auth ----
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// ---- Provider ----
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
-// 디바이스/브라우저 관계 없이 세션이 유지되도록 고정
-setPersistence(auth, browserLocalPersistence).catch((e) =>
-  console.error("[Auth] setPersistence error:", e)
-);
-
-// 로그인 진입 함수: iOS 사파리/팝업 차단 환경은 Redirect, 그 외 Popup
+// ---- 로그인 함수 (팝업 -> 실패 시 Redirect 폴백) ----
 export async function login() {
   try {
+    // 세션 영속성: 로컬 스토리지
+    await setPersistence(auth, browserLocalPersistence);
+
+    // iOS/사파리/팝업차단 의심 환경은 곧장 redirect가 더 안정적
     const isIOS =
       /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    const shouldRedirect =
-      isIOS || typeof window === "undefined" || window?.outerWidth === 0;
 
-    if (shouldRedirect) {
-      console.log("[Auth] using redirect");
+    if (isIOS) {
+      console.log("[Auth] using redirect (iOS suspected)");
       await signInWithRedirect(auth, provider);
-    } else {
-      console.log("[Auth] using popup");
-      await signInWithPopup(auth, provider);
+      return;
     }
+
+    // 1차: 팝업 시도
+    console.log("[Auth] trying popup");
+    await signInWithPopup(auth, provider);
   } catch (e) {
-    console.error("[Auth] login error:", e);
-    alert(e.message || String(e));
+    console.error("[Auth] popup error:", e?.code, e);
+    // 팝업 관련 오류는 바로 redirect 폴백
+    const popupErrors = new Set([
+      "auth/popup-closed-by-user",
+      "auth/popup-blocked",
+      "auth/cancelled-popup-request",
+      "auth/internal-error", // 일부 브라우저 추적방지 시 이 코드가 팝업 이슈로 나올 때가 있음
+    ]);
+    if (popupErrors.has(e?.code)) {
+      console.log("[Auth] fallback to redirect");
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+    // 그 외는 사용자에게 알림
+    alert(e?.message || String(e));
   }
 }
 
+// ---- 로그아웃 ----
 export function logout() {
   return auth.signOut();
 }
 
+// ---- 상태 감시 ----
 export function watchAuth(callback) {
   return onAuthStateChanged(auth, (user) => {
     console.log("[Auth] onAuthStateChanged:", user);
@@ -61,7 +79,8 @@ export function watchAuth(callback) {
   });
 }
 
-// 리다이렉트 결과는 앱 진입 시 한 번만 회수
+// ---- 리다이렉트 결과 1회 회수 ----
+// (앱 진입 시 한 번 호출해 주면 redirect 경로에서 세션 완성)
 export async function consumeRedirectOnce() {
   try {
     const res = await getRedirectResult(auth);
