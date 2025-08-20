@@ -4,19 +4,19 @@ import {
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
-  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   setPersistence,
   browserLocalPersistence,
+  setLogLevel,
 } from "firebase/auth";
 
-// === Firebase config (from your console) ===
+// === 네가 준 config 그대로 (storageBucket 표준값으로 교정) ===
 const firebaseConfig = {
   apiKey: "AIzaSyA-lPz7Ojjpv_o4EIFwbIUpV54ZCsPVeIE",
   authDomain: "dw-book-rental.firebaseapp.com",
   projectId: "dw-book-rental",
-  storageBucket: "dw-book-rental.appspot.com", // ← 표준 버킷 도메인
+  storageBucket: "dw-book-rental.appspot.com",
   messagingSenderId: "191103254450",
   appId: "1:191103254450:web:038689a9bcac8e0cfb2eab",
 };
@@ -25,47 +25,26 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
+// 디버그 로깅 강화
+setLogLevel("debug");
+console.log("[Auth] config check:", {
+  authDomain: app.options.authDomain,
+  origin: window.location.origin,
+});
+
 // ---- Provider ----
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
-// ---- 로그인: 팝업 우선 → 실패 시 Redirect 폴백 ----
+// ---- 로그인: '항상' Redirect만 사용 (팝업 경로 제거) ----
 export async function login() {
-  // 세션 영속성: 로컬 (탭/창 닫아도 유지)
-  await setPersistence(auth, browserLocalPersistence).catch((e) => {
-    console.error("[Auth] setPersistence error:", e);
-  });
-
   try {
-    // iOS/사파리/팝업차단 의심 환경은 바로 redirect가 더 안전
-    const isIOS =
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-    if (isIOS) {
-      console.log("[Auth] using redirect (iOS suspected)");
-      await signInWithRedirect(auth, provider);
-      return;
-    }
-
-    console.log("[Auth] trying popup");
-    await signInWithPopup(auth, provider);
+    await setPersistence(auth, browserLocalPersistence);
   } catch (e) {
-    console.error("[Auth] popup error:", e?.code, e);
-    // 팝업 관련 오류는 즉시 redirect 폴백
-    const popupErrors = new Set([
-      "auth/popup-closed-by-user",
-      "auth/popup-blocked",
-      "auth/cancelled-popup-request",
-      "auth/internal-error",
-    ]);
-    if (popupErrors.has(e?.code)) {
-      console.log("[Auth] fallback to redirect");
-      await signInWithRedirect(auth, provider);
-      return;
-    }
-    alert(e?.message || String(e));
+    console.error("[Auth] setPersistence error:", e);
   }
+  console.log("[Auth] using redirect (forced)");
+  await signInWithRedirect(auth, provider);
 }
 
 // ---- 로그아웃 ----
@@ -81,12 +60,15 @@ export function watchAuth(callback) {
   });
 }
 
-// ---- 리다이렉트 결과 1회 회수 (앱 진입 시) ----
+// ---- 리다이렉트 결과 1회 회수 ----
 export async function consumeRedirectOnce() {
   try {
     const res = await getRedirectResult(auth);
-    if (res) {
-      console.log("[Auth] getRedirectResult user:", res.user);
+    if (res?.user) {
+      console.log("[Auth] getRedirectResult user:", {
+        uid: res.user.uid,
+        email: res.user.email,
+      });
     } else {
       console.log("[Auth] no redirect result");
     }

@@ -6,10 +6,19 @@ export default function LoginPage() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // redirect 경로였다면 결과를 회수하여 세션을 완성
+    // 돌아왔다면 redirect 결과 회수 → 세션 완성
     consumeRedirectOnce();
+
     // 인증 상태 구독
     const un = watchAuth(setUser);
+
+    // 아직 로그인 안 했고, 이번 탭에서 자동 시도를 안 했다면 즉시 리다이렉트
+    const tried = sessionStorage.getItem("__login_redirect_tried__");
+    if (!tried) {
+      sessionStorage.setItem("__login_redirect_tried__", "1");
+      // 자동 리다이렉트 (팝업 경로 완전 제거)
+      login();
+    }
     return () => un();
   }, []);
 
@@ -28,7 +37,11 @@ export default function LoginPage() {
         </div>
       ) : (
         <div>
-          <p style={{ margin: "8px 0" }}>로그인이 필요합니다.</p>
+          <p style={{ margin: "8px 0" }}>
+            로그인 창으로 자동 이동 중입니다…
+            <br />
+            (차단되면 아래 버튼으로 다시 시도)
+          </p>
           <button onClick={login} style={{ padding: "8px 12px" }}>
             구글로 로그인
           </button>
