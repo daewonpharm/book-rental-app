@@ -1,21 +1,29 @@
+// src/LoginPage.jsx
 import { useEffect, useState } from "react";
 import { login, logout, watchAuth, consumeRedirectResult } from "./auth";
 
 export default function LoginPage() {
   const [user, setUser] = useState(null);
-  const [status, setStatus] = useState("idle"); // idle | checking | done
+  const [status, setStatus] = useState("idle"); // idle | checking | authed
 
   useEffect(() => {
-    // 1) redirect로 돌아왔으면 결과를 수거
     (async () => {
       setStatus("checking");
       const u = await consumeRedirectResult();
-      if (u) setUser(u);
-      setStatus("done");
+      if (u) {
+        console.log("[Auth] redirect result user:", u);
+        setUser(u);
+        setStatus("authed");
+      } else {
+        setStatus("idle");
+      }
     })();
 
-    // 2) 실시간 상태 감시
-    const unsub = watchAuth((u) => setUser(u));
+    const unsub = watchAuth((u) => {
+      console.log("[Auth] onAuthStateChanged:", u);
+      setUser(u);
+      if (u) setStatus("authed");
+    });
     return () => unsub();
   }, []);
 
@@ -42,12 +50,13 @@ export default function LoginPage() {
           </div>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "grid", gap: 8, maxWidth: 280 }}>
           <button onClick={login}>Sign in with Google</button>
-          <small style={{ color: "#888" }}>
+          <small style={{ color: "#888", lineHeight: 1.4 }}>
             팝업이 자동으로 닫히거나 실패하면 자동으로 리다이렉트 로그인으로 전환돼요.
             브라우저의 “제3자 쿠키 차단”이 켜져 있으면 팝업이 실패할 수 있어요.
           </small>
+          <small style={{ color: "#999" }}>상태: {status}</small>
         </div>
       )}
     </div>
