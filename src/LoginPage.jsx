@@ -6,7 +6,7 @@ export default function LoginPage() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // redirect 경로였다면 결과 회수하여 세션 완성
+    // redirect 경로였다면 결과를 회수하여 세션을 완성
     consumeRedirectOnce();
     // 인증 상태 구독
     const un = watchAuth(setUser);

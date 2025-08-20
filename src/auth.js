@@ -11,12 +11,14 @@ import {
   browserLocalPersistence,
 } from "firebase/auth";
 
-// ⬇️ 실제 프로젝트 설정으로 교체
+// === Firebase config (from your console) ===
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyA-lPz7Ojjpv_o4EIFwbIUpV54ZCsPVeIE",
+  authDomain: "dw-book-rental.firebaseapp.com",
+  projectId: "dw-book-rental",
+  storageBucket: "dw-book-rental.appspot.com", // ← 표준 버킷 도메인
+  messagingSenderId: "191103254450",
+  appId: "1:191103254450:web:038689a9bcac8e0cfb2eab",
 };
 
 // ---- Singleton App/Auth ----
@@ -27,13 +29,15 @@ export const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
-// ---- 로그인 함수 (팝업 -> 실패 시 Redirect 폴백) ----
+// ---- 로그인: 팝업 우선 → 실패 시 Redirect 폴백 ----
 export async function login() {
-  try {
-    // 세션 영속성: 로컬 스토리지
-    await setPersistence(auth, browserLocalPersistence);
+  // 세션 영속성: 로컬 (탭/창 닫아도 유지)
+  await setPersistence(auth, browserLocalPersistence).catch((e) => {
+    console.error("[Auth] setPersistence error:", e);
+  });
 
-    // iOS/사파리/팝업차단 의심 환경은 곧장 redirect가 더 안정적
+  try {
+    // iOS/사파리/팝업차단 의심 환경은 바로 redirect가 더 안전
     const isIOS =
       /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -44,24 +48,22 @@ export async function login() {
       return;
     }
 
-    // 1차: 팝업 시도
     console.log("[Auth] trying popup");
     await signInWithPopup(auth, provider);
   } catch (e) {
     console.error("[Auth] popup error:", e?.code, e);
-    // 팝업 관련 오류는 바로 redirect 폴백
+    // 팝업 관련 오류는 즉시 redirect 폴백
     const popupErrors = new Set([
       "auth/popup-closed-by-user",
       "auth/popup-blocked",
       "auth/cancelled-popup-request",
-      "auth/internal-error", // 일부 브라우저 추적방지 시 이 코드가 팝업 이슈로 나올 때가 있음
+      "auth/internal-error",
     ]);
     if (popupErrors.has(e?.code)) {
       console.log("[Auth] fallback to redirect");
       await signInWithRedirect(auth, provider);
       return;
     }
-    // 그 외는 사용자에게 알림
     alert(e?.message || String(e));
   }
 }
@@ -79,8 +81,7 @@ export function watchAuth(callback) {
   });
 }
 
-// ---- 리다이렉트 결과 1회 회수 ----
-// (앱 진입 시 한 번 호출해 주면 redirect 경로에서 세션 완성)
+// ---- 리다이렉트 결과 1회 회수 (앱 진입 시) ----
 export async function consumeRedirectOnce() {
   try {
     const res = await getRedirectResult(auth);
