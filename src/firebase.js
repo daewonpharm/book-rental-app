@@ -1,38 +1,32 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
-const cfg = {
-  apiKey:            import.meta.env.VITE_FB_API_KEY,
-  authDomain:        import.meta.env.VITE_FB_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FB_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FB_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FB_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FB_APP_ID,
+// ✅ 너가 준 Firebase 웹앱 설정
+const firebaseConfig = {
+  apiKey: "AIzaSyA-lPz7Ojjpv_o4EIFwbIUpV54ZCsPVeIE",
+  authDomain: "dw-book-rental.firebaseapp.com",
+  projectId: "dw-book-rental",
+  storageBucket: "dw-book-rental.firebasestorage.app",
+  messagingSenderId: "191103254450",
+  appId: "1:191103254450:web:038689a9bcac8e0cfb2eab",
 };
 
-// 어떤 키가 비었는지 기록만 남긴다(던지지 않음)
-export const FIREBASE_MISSING_KEYS =
-  Object.entries(cfg).filter(([, v]) => !v).map(([k]) => k);
+// ✅ reCAPTCHA v3 Site Key (공개 가능, 너가 준 값)
+const APPCHECK_SITE_KEY = "6Lfm9asrAAAAAHK4gXp-bWrQnzKLnC4qSbIgImkZ";
 
-if (FIREBASE_MISSING_KEYS.length) {
-  console.error("[firebase] Missing env keys:", FIREBASE_MISSING_KEYS.join(", "));
-}
+// --- 초기화 순서 중요: App → AppCheck → Firestore ---
+const app = initializeApp(firebaseConfig);
 
-let app = null;
-let db  = null;
-try {
-  app = initializeApp(cfg);
-  db  = getFirestore(app);
-} catch (e) {
-  console.error("[firebase] initialize failed:", e);
-}
+// (선택) 로컬에서만 디버그 토큰 쓰고 싶으면 아래 주석 해제
+// if (import.meta.env.DEV) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 
-// 필요에 따라 사용할 수 있게 그대로 export
-export { db };
+initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider(APPCHECK_SITE_KEY),
+  isTokenAutoRefreshEnabled: true,
+});
 
-// 진단용(마스킹)
-export function getSafeFirebaseConfig() {
-  const mask = (v) => !v ? "" : (String(v).length > 8 ? `${String(v).slice(0,4)}…${String(v).slice(-3)}` : v);
-  return Object.fromEntries(Object.entries(cfg).map(([k, v]) => [k, mask(v)]));
-}
+export const db = getFirestore(app);
+// (필요하면) app도 export 가능
+export { app };
