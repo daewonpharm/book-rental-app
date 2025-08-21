@@ -1,7 +1,8 @@
 // src/auth.js
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth, db } from "./firebase.js";  // ← 확장자까지 명시 권장
+
 
 // 1) 하드코딩 관리자 (빠른 가드)
 export const ADMIN_UIDS = new Set([

@@ -1,17 +1,25 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate } from "react-router-dom";
-import Home from "./pages/Home";
-import BookList from "./pages/BookList";
-import Rent from "./pages/Rent";
-import Return from "./pages/Return";
-import EnvDebug from "./pages/EnvDebug";
-import { Icons } from "./constants/icons";
+
+import Home from "./pages/Home.jsx";
+import BookList from "./pages/BookList.jsx";
+import Rent from "./pages/Rent.jsx";
+import Return from "./pages/Return.jsx";
+import EnvDebug from "./pages/EnvDebug.jsx";
+
+import LoginPage from "./LoginPage.jsx";
+
+// 🔒 관리자 가드/페이지
+import RequireAdmin from "./components/RequireAdmin.jsx";
+import Admin from "./pages/Admin.jsx";
+
+import { Icons } from "./constants/icons.js";
 import "./styles/global.css";
 
-// ✅ 추가
-import LoginPage from "./LoginPage"; // 로그인 버튼/UID 확인용 임시 페이지
+// ✅ 비공개 관리자 경로 (.env.local / Vercel)
+const RAW_ADMIN_PATH = import.meta.env.VITE_ADMIN_PATH || "/admin";
+const adminPath = RAW_ADMIN_PATH.startsWith("/") ? RAW_ADMIN_PATH : `/${RAW_ADMIN_PATH}`;
 
-/** 공통 레이아웃 */
 function BaseLayout({ children }) {
   return (
     <main className="w-screen flex justify-center px-4">
@@ -20,7 +28,6 @@ function BaseLayout({ children }) {
   );
 }
 
-/** 상단(데스크톱) + 하단(모바일) 내비게이션 */
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,12 +59,11 @@ function Navigation() {
               <span>대원책방</span>
             </button>
             <nav className="hidden sm:flex items-center gap-1">
-              <TopTab to="/"       label="Home"  icon={Icons.home} />
+              <TopTab to="/"       label="Home"    icon={Icons.home} />
               <TopTab to="/books"  label="도서목록" icon={Icons.list} />
-              <TopTab to="/rent"   label="대여"   icon={Icons.rent} />
-              <TopTab to="/return" label="반납"   icon={Icons.return} />
-              {/* ✅ 관리자용 로그인 페이지 라우트 버튼은 필요하면 추가 */}
-              {/* <TopTab to="/login" label="Login" icon="🔑" /> */}
+              <TopTab to="/rent"   label="대여"     icon={Icons.rent} />
+              <TopTab to="/return" label="반납"     icon={Icons.return} />
+              {/* 로그인 탭은 노출하지 않음 */}
             </nav>
           </div>
         </div>
@@ -66,10 +72,10 @@ function Navigation() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 sm:hidden">
         <div className="grid grid-cols-4 max-w-md mx-auto">
           {[
-            { to: "/",      label: "Home", icon: Icons.home },
-            { to: "/books", label: "도서목록",  icon: Icons.list },
-            { to: "/rent",  label: "대여",  icon: Icons.rent },
-            { to: "/return",label: "반납",  icon: Icons.return },
+            { to: "/",      label: "Home",    icon: Icons.home },
+            { to: "/books", label: "도서목록", icon: Icons.list },
+            { to: "/rent",  label: "대여",     icon: Icons.rent },
+            { to: "/return",label: "반납",     icon: Icons.return },
           ].map((item) => (
             <NavLink
               key={item.to}
@@ -102,8 +108,23 @@ export default function App() {
           <Route path="/rent" element={<Rent />} />
           <Route path="/return" element={<Return />} />
           <Route path="/__env" element={<EnvDebug />} />
-          {/* ✅ 로그인 라우트 추가 */}
           <Route path="/login" element={<LoginPage />} />
+
+          {/* ✅ 비공개 관리자 라우트 (환경변수 기반) */}
+          <Route
+            path={adminPath}
+            element={
+              <RequireAdmin>
+                <Admin />
+              </RequireAdmin>
+            }
+          />
+
+          {/* ❌ /admin 직접 접근은 404처럼 */}
+          <Route path="/admin" element={<div style={{ padding: 24 }}>404 Not Found</div>} />
+
+          {/* 나머지 전부 404 */}
+          <Route path="*" element={<div style={{ padding: 24 }}>404 Not Found</div>} />
         </Routes>
       </BaseLayout>
     </BrowserRouter>

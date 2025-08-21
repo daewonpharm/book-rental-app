@@ -1,178 +1,154 @@
-// src/pages/Admin.jsx
-import React, { useEffect, useState } from "react";
-import { db } from "../firebase";
+import React, { useEffect, useMemo, useState } from "react";
+import { db } from "../firebase.js";
 import {
   collection,
   getDocs,
-  updateDoc,
-  doc,
-  Timestamp,
-  query,
+  limit,
   orderBy,
+  query,
 } from "firebase/firestore";
-import { format } from "date-fns";
+
+/** Firestore Timestamp | string | null -> 보기 좋은 날짜/시간 */
+function fmt(ts) {
+  if (!ts) return "-";
+  try {
+    // Timestamp 타입
+    if (typeof ts?.toDate === "function") return ts.toDate().toLocaleString();
+    // 문자열(ISO/일반)
+    const d = new Date(ts);
+    if (!isNaN(d.getTime())) return d.toLocaleString();
+  } catch (_) {}
+  return String(ts);
+}
 
 export default function Admin() {
-  const [books, setBooks] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [authorized, setAuthorized] = useState(false);
-  const correctPassword = "70687068";
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-  // ✅ 비밀번호를 localStorage 확인
-  useEffect(() => {
-    const isAuthorized = localStorage.getItem("adminAccess") === "true";
-
-    if (!isAuthorized) {
-      const userInput = prompt("🔐 관리자 비밀번호를 입력하세요");
-      if (userInput === correctPassword) {
-        localStorage.setItem("adminAccess", "true");
-        setAuthorized(true);
-      } else {
-        alert("비밀번호가 틀렸습니다.");
-        window.location.href = "/"; // 잘못된 경우 홈으로 이동
-      }
-    } else {
-      setAuthorized(true);
+  // 페이지네이션이 필요하면 마지막 문서 기억해서 startAfter로 확장 가능
+  // 여기서는 최근 200건만 간단히 표시
+  const fetchLogs = async () => {
+    setError("");
+    setRefreshing(true);
+    try {
+      const q = query(
+        collection(db, "rentLogs"),
+        orderBy("rentedAt", "desc"),
+        limit(200)
+      );
+      const snap = await getDocs(q);
+      const rows = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setLogs(rows);
+    } catch (e) {
+      console.error(e);
+      setError(e?.message || "기록을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (authorized) {
-      fetchBooks();
-      fetchLogs();
-    }
-  }, [authorized]);
-
-  const fetchBooks = async () => {
-    const booksRef = collection(db, "books");
-    const snapshot = await getDocs(booksRef);
-    const bookData = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setBooks(bookData);
-  };
-
-  const fetchLogs = async () => {
-    const logsRef = collection(db, "rentLogs");
-    const q = query(logsRef, orderBy("rentedAt", "desc"));
-    const snapshot = await getDocs(q);
-    const logData = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setLogs(logData);
-  };
-
-  const handleDateMigration = async () => {
-    const booksRef = collection(db, "books");
-    const snapshot = await getDocs(booksRef);
-
-    const updates = snapshot.docs.map(async (docSnap) => {
-      const data = docSnap.data();
-      const updates = {};
-
-      if (data.rentDate && !data.rentedAt) {
-        updates.rentedAt = Timestamp.fromDate(new Date(data.rentDate));
-      }
-      if (data.returnDate && !data.returnedAt) {
-        updates.returnedAt = Timestamp.fromDate(new Date(data.returnDate));
-      }
-
-      if (Object.keys(updates).length > 0) {
-        await updateDoc(doc(db, "books", docSnap.id), updates);
-      }
+  // 인기 도서 TOP 5 (반납 완료/미완료 무관, 제목 기준 count)
+  const top5 = useMemo(() => {
+    const counts = new Map();
+    logs.forEach((r) => {
+      const title = r.title || r.bookTitle || r.book?.title || "(제목없음)";
+      counts.set(title, (counts.get(title) || 0) + 1);
     });
-
-    await Promise.all(updates);
-    alert("📆 날짜 필드 변환 완료!");
-    fetchBooks();
-  };
-
-  const formatDate = (timestamp) =>
-    timestamp?.toDate ? format(timestamp.toDate(), "yyyy.MM.dd") : "–";
-
-  const topBooks = Object.entries(
-    logs.reduce((acc, log) => {
-      acc[log.title] = (acc[log.title] || 0) + 1;
-      return acc;
-    }, {})
-  )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
-  const topUsers = Object.entries(
-    logs.reduce((acc, log) => {
-      acc[log.rentedBy] = (acc[log.rentedBy] || 0) + 1;
-      return acc;
-    }, {})
-  )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
-  if (!authorized) return null;
+    const arr = Array.from(counts.entries()).map(([title, count]) => ({ title, count }));
+    arr.sort((a, b) => b.count - a.count);
+    return arr.slice(0, 5);
+  }, [logs]);
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">🛠 관리자 페이지</h2>
+    <div className="space-y-6">
+      <header className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">관리자 대시보드</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchLogs}
+            disabled={refreshing}
+            className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {refreshing ? "새로고침 중…" : "새로고침"}
+          </button>
+        </div>
+      </header>
 
-      <button
-        onClick={handleDateMigration}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mb-6"
-      >
-        📆 rentDate/returnDate ➜ Timestamp로 변환
-      </button>
-
-      {/* ✅ 누적 대여 기록 테이블 */}
-      <div className="overflow-x-auto mb-12">
-        <h3 className="text-lg font-semibold mb-2">📜 누적 대여 기록</h3>
-        <table className="table-auto w-full border-collapse border text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border px-4 py-2">👤 대여자</th>
-              <th className="border px-4 py-2">📘 책 제목</th>
-              <th className="border px-4 py-2">📅 대여일</th>
-              <th className="border px-4 py-2">📅 반납일</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.id}>
-                <td className="border px-4 py-2">{log.rentedBy}</td>
-                <td className="border px-4 py-2">{log.title}</td>
-                <td className="border px-4 py-2">{formatDate(log.rentedAt)}</td>
-                <td className="border px-4 py-2">
-                  {log.returnedAt ? formatDate(log.returnedAt) : "–"}
-                </td>
-              </tr>
+      {/* 인기 도서 TOP 5 */}
+      <section className="border rounded-2xl p-4">
+        <h2 className="font-semibold mb-3">📈 인기 대여 TOP 5</h2>
+        {top5.length === 0 ? (
+          <div className="text-sm text-gray-500">데이터가 없습니다.</div>
+        ) : (
+          <ol className="list-decimal ml-5 space-y-1">
+            {top5.map((item, i) => (
+              <li key={i} className="flex items-center justify-between">
+                <span className="truncate">{item.title}</span>
+                <span className="tabular-nums text-gray-700">{item.count}회</span>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </ol>
+        )}
+      </section>
 
-      {/* 🔝 가장 인기 있는 책 Top 5 */}
-      <div className="mb-12">
-        <h3 className="text-lg font-semibold mb-2">📚 가장 인기 있는 책 Top 5</h3>
-        <ul className="list-disc pl-5 text-sm">
-          {topBooks.map(([title, count], i) => (
-            <li key={i}>
-              <strong>{title}</strong> - {count}회 대여
-            </li>
-          ))}
-        </ul>
-      </div>
+      {/* 누적 대여 로그 */}
+      <section className="border rounded-2xl p-4">
+        <h2 className="font-semibold mb-3">📚 누적 대여 기록 (최근 200건)</h2>
 
-      {/* 👤 가장 많이 빌린 사람 Top 5 */}
-      <div className="mb-12">
-        <h3 className="text-lg font-semibold mb-2">👤 대여를 가장 많이 한 사번 Top 5</h3>
-        <ul className="list-disc pl-5 text-sm">
-          {topUsers.map(([user, count], i) => (
-            <li key={i}>
-              <strong>{user}</strong> - {count}회 대여
-            </li>
-          ))}
-        </ul>
-      </div>
+        {loading ? (
+          <div className="text-sm text-gray-500">불러오는 중…</div>
+        ) : error ? (
+          <div className="text-sm text-red-600">{error}</div>
+        ) : logs.length === 0 ? (
+          <div className="text-sm text-gray-500">기록이 없습니다.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b">
+                  <th className="py-2 pr-2">대여자(사번)</th>
+                  <th className="py-2 pr-2">책 제목</th>
+                  <th className="py-2 pr-2">대여일</th>
+                  <th className="py-2 pr-2">반납일</th>
+                  <th className="py-2">반납 예정일</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((r) => {
+                  const employeeId = r.employeeId || r.empId || r.userId || "-";
+                  const title = r.title || r.bookTitle || r.book?.title || "-";
+                  const rentedAt = r.rentedAt || r.rentDate || r.createdAt || null;
+                  const returnedAt = r.returnedAt || r.returnDate || null;
+                  const due = r.dueDate || r.expectedReturnDate || null;
+                  return (
+                    <tr key={r.id} className="border-b last:border-none">
+                      <td className="py-2 pr-2 whitespace-nowrap">{employeeId}</td>
+                      <td className="py-2 pr-2">{title}</td>
+                      <td className="py-2 pr-2 whitespace-nowrap">{fmt(rentedAt)}</td>
+                      <td className="py-2 pr-2 whitespace-nowrap">
+                        {returnedAt ? fmt(returnedAt) : "-"}
+                      </td>
+                      <td className="py-2 whitespace-nowrap">{due ? fmt(due) : "-"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <footer className="text-xs text-gray-500">
+        * `rentLogs` 컬렉션에서 `rentedAt` 내림차순으로 최대 200건을 불러옵니다.
+      </footer>
     </div>
   );
 }
