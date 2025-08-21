@@ -21,7 +21,7 @@ if (import.meta.env.DEV) {
   self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 }
 initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
+  provider: new ReCaptchaV3Provider(import.meta.env.VITE_6Lc2OK0rAAAAAGtCAkm1HHjxXpZak6EvDXdMCffT),
   isTokenAutoRefreshEnabled: true,
 });
 
