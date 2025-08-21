@@ -1,3 +1,4 @@
+// src/components/BarcodeScanner.jsx
 import React, { useEffect, useRef } from "react";
 import { BrowserMultiFormatReader } from "@zxing/library";
 
@@ -23,8 +24,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     const start = async () => {
       const reader = readerRef.current;
       try {
-        // 1차: 사파리에서 후면을 가장 안정적으로 강제하는 방식
-        // decodeFromConstraints → facingMode: environment
+        // 1차: 사파리에서 후면을 안정적으로 강제
         await reader.decodeFromConstraints(
           {
             audio: false,
@@ -35,7 +35,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
             },
           },
           videoRef.current,
-          (result, err, controls) => {
+          (result) => {
             if (result) {
               const text = (result.getText() || "").trim().toLowerCase();
               cleanup();
@@ -44,7 +44,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
           }
         );
       } catch (e1) {
-        // 2차 폴백: 기기 나열 후 ‘back|rear|environment’ 우선 선택
+        // 2차 폴백: back/rear/environment 우선 선택
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
           const cams = devices.filter((d) => d.kind === "videoinput");
@@ -56,7 +56,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
           await reader.decodeFromVideoDevice(
             back?.deviceId,
             videoRef.current,
-            (result, err) => {
+            (result) => {
               if (result) {
                 const text = (result.getText() || "").trim().toLowerCase();
                 cleanup();
@@ -74,7 +74,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
 
     start();
 
-    // 언마운트 시 완전 정리 (iOS에서 매우 중요)
+    // 언마운트 시 완전 정리 (iOS에서 중요)
     return cleanup;
   }, [onDetected, onClose]);
 
@@ -89,11 +89,6 @@ export default function BarcodeScanner({ onDetected, onClose }) {
         playsInline
       />
       <div className="pointer-events-none absolute inset-0 border-4 border-green-500/90 rounded-xl" />
-      {/* 스캔 중에만 보이는 안내문 */}
-      <div className="absolute bottom-2 left-2 right-2 text-xs text-yellow-300 bg-black/70 p-2 rounded">
-        ⚠️ iOS 사파리에서 후면 카메라가 고정되지 않거나 두 번째 스캔에서 전면으로 바뀌면
-        스캐너를 닫았다가 다시 열어주세요. (이번 버전은 자동 정리/재요청을 적용했습니다)
-      </div>
     </div>
   );
 }
