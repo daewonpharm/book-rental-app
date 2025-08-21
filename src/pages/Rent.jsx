@@ -1,5 +1,4 @@
-// src/pages/Rent.jsx
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import {
   collection, query, where, getDocs, doc, updateDoc, addDoc,
@@ -10,20 +9,19 @@ import BarcodeScanner from "../components/BarcodeScanner";
 export default function Rent() {
   const [showScanner, setShowScanner] = useState(false);
   const [employeeId, setEmployeeId] = useState("");
-  const [bookTitle, setBookTitle] = useState(""); // 표시용(수정불가)
-  const [bookCode, setBookCode] = useState("");   // 내부용
+  const [bookTitle, setBookTitle] = useState("");
+  const [bookCode, setBookCode] = useState("");
 
   useEffect(() => {}, []);
 
   const handleScan = async (code) => {
     setShowScanner(false);
-    // code → books 조회 후 제목 매핑
     const snap = await getDocs(query(collection(db, "books"), where("bookCode", "==", code)));
     if (snap.empty) {
       alert("해당 바코드의 책을 찾을 수 없습니다.");
       setBookTitle("");
       setBookCode("");
-      return; // ← if 블록에서 깔끔히 종료
+      return;
     }
     const book = { id: snap.docs[0].id, ...snap.docs[0].data() };
     setBookTitle(book.title || "");
@@ -39,7 +37,6 @@ export default function Rent() {
     if (!bookCode) return alert("도서를 스캔하세요.");
     if (employeeId.length !== 6) return alert("사번 6자리를 입력하세요.");
 
-    // 책 상태 확인
     const bsnap = await getDocs(query(collection(db, "books"), where("bookCode", "==", bookCode)));
     if (bsnap.empty) return alert("책 정보를 찾을 수 없습니다.");
     const bdoc = bsnap.docs[0];
@@ -48,12 +45,10 @@ export default function Rent() {
 
     if (book.status === "대출중") return alert("이미 대출 중인 도서입니다.");
 
-    // 반납 예정일: 2주 후
     const now = new Date();
     const due = new Date(now);
     due.setDate(due.getDate() + 14);
 
-    // books 업데이트
     await updateDoc(bookRef, {
       status: "대출중",
       rentedBy: employeeId,
@@ -61,7 +56,6 @@ export default function Rent() {
       dueAt: Timestamp.fromDate(due),
     });
 
-    // rentLogs 생성
     await addDoc(collection(db, "rentLogs"), {
       bookId: bdoc.id,
       bookCode,
@@ -83,7 +77,6 @@ export default function Rent() {
       <div className="mx-auto max-w-md py-6">
         <h1 className="text-center text-2xl font-bold">도서 대여</h1>
 
-        {/* 도서 제목(자동 표시) */}
         <input
           className="mt-6 w-full rounded-xl border px-4 py-3 text-base"
           placeholder="도서 제목 (스캔 시 자동 표시)"
@@ -91,7 +84,6 @@ export default function Rent() {
           readOnly
         />
 
-        {/* 사번 */}
         <input
           className="mt-4 w-full rounded-xl border px-4 py-3 text-base"
           placeholder="사번 6자리"
@@ -102,7 +94,6 @@ export default function Rent() {
           onChange={onChangeEmp}
         />
 
-        {/* 스캐너 */}
         <label className="mt-4 block text-sm font-semibold">📷 바코드 스캔</label>
         <button
           className="mt-1 w-full rounded-xl border px-4 py-3"
