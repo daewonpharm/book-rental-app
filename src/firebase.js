@@ -1,6 +1,6 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
@@ -15,13 +15,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// 개발 편의(선택): dev에서 App Check 디버그 토큰 자동 등록
+// 개발 편의: dev에서 App Check 디버그 토큰
 if (import.meta.env.DEV) {
-  // eslint-disable-next-line no-undef
   self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 }
 
-// App Check(reCAPTCHA v3) — 환경변수로만 주입
+// App Check(reCAPTCHA v3) — 환경변수로 주입
 const siteKey = import.meta.env.VITE_APPCHECK_SITE_KEY;
 if (!siteKey) {
   console.error("[AppCheck] Missing VITE_APPCHECK_SITE_KEY env variable.");
@@ -34,10 +33,8 @@ initializeAppCheck(app, {
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// ✅ auth 퍼시스턴스를 보장시키기 위한 준비 Promise를 함께 export
-//    (로그인 전에 반드시 완료되도록 사용)
-import { setPersistence, browserLocalPersistence } from "firebase/auth";
-export const authReady = setPersistence(getAuth(app), browserLocalPersistence)
+// ✅ 로그인 퍼시스턴스 보장
+export const authReady = setPersistence(auth, browserLocalPersistence)
   .then(() => true)
   .catch((e) => {
     console.error("[Auth] setPersistence failed:", e);
