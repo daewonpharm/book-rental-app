@@ -1,10 +1,22 @@
-import { useEffect, useState } from "react";
+// src/LoginPage.jsx
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { login, logout, watchAuth, isHardcodedAdmin, isFirestoreAdmin } from "./auth.js";
+
+const adminPath = (import.meta.env.VITE_ADMIN_PATH?.startsWith("/") ? import.meta.env.VITE_ADMIN_PATH : `/${import.meta.env.VITE_ADMIN_PATH}`) || "/admin";
 
 export default function LoginPage() {
   const [user, setUser] = useState(null);
   const [checkingRole, setCheckingRole] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const from = useMemo(() => {
+    // 가드에서 건네준 목적지(비공개 경로) 우선
+    const s = location.state?.from;
+    return (typeof s === "string" && s.startsWith("/")) ? s : adminPath;
+  }, [location.state, adminPath]);
 
   useEffect(() => watchAuth(setUser), []);
 
@@ -13,16 +25,19 @@ export default function LoginPage() {
     (async () => {
       if (!user) { setIsAdmin(false); return; }
       setCheckingRole(true);
-
       let ok = isHardcodedAdmin(user);
-      if (!ok) {
-        try { ok = await isFirestoreAdmin(user); } catch (e) { console.error("roles 확인 오류:", e); }
-      }
-
+      if (!ok) { try { ok = await isFirestoreAdmin(user); } catch (e) { console.error(e); } }
       if (mounted) { setIsAdmin(ok); setCheckingRole(false); }
     })();
     return () => { mounted = false; };
   }, [user]);
+
+  // ✅ 로그인 + 관리자면 자동으로 원래 가려던 경로로 이동
+  useEffect(() => {
+    if (user && !checkingRole && isAdmin) {
+      navigate(from, { replace: true });
+    }
+  }, [user, checkingRole, isAdmin, from, navigate]);
 
   return (
     <div style={{ padding: 24 }}>
@@ -34,21 +49,12 @@ export default function LoginPage() {
         </button>
       ) : (
         <div style={{ marginTop: 16 }}>
-          {/* 이메일/UID 표시는 제거 */}
           <div style={{ marginTop: 8 }}>
             <button onClick={logout} style={{ padding: "6px 10px" }}>로그아웃</button>
           </div>
-
           <div style={{ marginTop: 16 }}>
             {checkingRole ? "권한 확인 중..." : (isAdmin ? "✅ 관리자 권한" : "❌ 관리자 아님")}
           </div>
-
-          {/* 보안을 위해 '관리자 페이지 이동' 버튼 제공하지 않음 (비공개 URL 직접 입력) */}
-          {isAdmin && (
-            <p style={{ marginTop: 8, color: "#666" }}>
-              관리자 페이지는 비공개 경로를 직접 입력해서 접속하세요.
-            </p>
-          )}
         </div>
       )}
     </div>
