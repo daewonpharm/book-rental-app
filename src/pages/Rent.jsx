@@ -1,4 +1,5 @@
-﻿import React, { useEffect, useState } from "react";
+@'
+import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import {
   collection, query, where, getDocs, doc, updateDoc, addDoc,
@@ -118,3 +119,4 @@ export default function Rent() {
     </div>
   );
 }
+'@ | Set-Content -Encoding UTF8 src/pages/Rent.jsx
