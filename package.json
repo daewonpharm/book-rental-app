@@ -15,7 +15,7 @@
     "preinstall": "npx only-allow npm"
   },
   "dependencies": {
-    "@zxing/library": "^0.21.3",
+    "@zxing/library": "0.21.3",
     "date-fns": "^4.1.0",
     "firebase": "^12.1.0",
     "html5-qrcode": "^2.3.8",
