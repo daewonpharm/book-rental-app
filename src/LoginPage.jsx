@@ -5,50 +5,63 @@ import {
   login, logout, watchAuth, isHardcodedAdmin, isFirestoreAdmin
 } from "./auth.js";
 import { getRedirectResult } from "firebase/auth";
-import { auth } from "./firebase.js";
+import { auth, authReady } from "./firebase.js";
 
+// 기본 관리자 경로: /console-x7a2k9 (env 있으면 그 값 사용)
 const adminPath =
   (import.meta.env.VITE_ADMIN_PATH?.startsWith("/")
     ? import.meta.env.VITE_ADMIN_PATH
-    : `/${import.meta.env.VITE_ADMIN_PATH}`) || "/admin";
+    : `/${import.meta.env.VITE_ADMIN_PATH}`) || "/console-x7a2k9";
 
 export default function LoginPage() {
   const [user, setUser] = useState(null);
   const [checkingRole, setCheckingRole] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 가드가 넘겨준 from(있을 때 우선), 없으면 세션 저장값, 그것마저 없으면 비공개 경로
+  // 로그인 성공 후 돌아갈 경로
   const from = useMemo(() => {
-    const s = location.state?.from;
-    const ss = sessionStorage.getItem("nextAfterLogin");
-    return (typeof s === "string" && s.startsWith("/"))
-      ? s
-      : (typeof ss === "string" && ss.startsWith("/"))
-        ? ss
-        : adminPath;
-  }, [location.state, adminPath]);
+    const s = location.state;
+    return (s && s.from) || sessionStorage.getItem("nextAfterLogin") || adminPath;
+  }, [location]);
 
-  // 리다이렉트 로그인 결과 수거 (오류는 무시)
+  // ✅ 페이지 최초 1회: 퍼시스턴스 보장 후 redirect 결과 회수
   useEffect(() => {
     (async () => {
-      try { await getRedirectResult(auth); } catch (_) {}
+      await authReady; // 퍼시스턴스 먼저
+      try {
+        const res = await getRedirectResult(auth);
+        if (res?.user) {
+          // 필요하면 여기서 추가 후처리
+          // console.log("Redirect 로그인 결과:", res.user.uid);
+        }
+      } catch (e) {
+        // auth/no-auth-event 는 무시
+        if (e?.code !== "auth/no-auth-event") {
+          console.error("getRedirectResult error:", e);
+        }
+      }
     })();
   }, []);
 
-  // 사용자 상태 구독
+  // 전역 인증 상태 구독
   useEffect(() => watchAuth(setUser), []);
 
-  // 권한 확인
+  // 관리자 권한 확인(하드코딩 → roles 문서 순서)
   useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
     let mounted = true;
     (async () => {
-      if (!user) { setIsAdmin(false); return; }
       setCheckingRole(true);
       let ok = isHardcodedAdmin(user);
       if (!ok) {
-        try { ok = await isFirestoreAdmin(user); } catch (e) { console.error("roles 확인 오류:", e); }
+        try {
+          ok = await isFirestoreAdmin(user);
+        } catch (e) {
+          console.error("roles 확인 오류:", e);
+        }
       }
       if (mounted) { setIsAdmin(ok); setCheckingRole(false); }
     })();
@@ -58,18 +71,24 @@ export default function LoginPage() {
   // ✅ 로그인 + 관리자면 원래 목적지로 복귀 (세션 키도 정리)
   useEffect(() => {
     if (user && !checkingRole && isAdmin) {
-      const target = from;
+      const target = from || adminPath;
       sessionStorage.removeItem("nextAfterLogin");
       navigate(target, { replace: true });
     }
   }, [user, checkingRole, isAdmin, from, navigate]);
+
+  // 버튼: 로그인 직전 목적지 저장 후 리다이렉트
+  const handleLogin = async () => {
+    sessionStorage.setItem("nextAfterLogin", from || adminPath);
+    await login();
+  };
 
   return (
     <div style={{ padding: 24 }}>
       <h2>관리자 로그인</h2>
 
       {!user ? (
-        <button onClick={login} style={{ padding: "8px 12px" }}>
+        <button onClick={handleLogin} style={{ padding: "8px 12px", marginTop: 8 }}>
           Google 계정으로 로그인
         </button>
       ) : (
