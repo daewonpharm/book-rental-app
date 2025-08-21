@@ -1,8 +1,12 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import {
+  initializeAppCheck,
+  ReCaptchaV3Provider,
+  getToken as getAppCheckToken,
+} from "firebase/app-check";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA-lPz7Ojjpv_o4EIFwbIUpV54ZCsPVeIE",
@@ -15,33 +19,39 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// 개발 편의(선택): dev에서 App Check 디버그 토큰 자동 등록
+// ▼ 개발 중이면 디버그 토큰(선택)
 if (import.meta.env.DEV) {
   // eslint-disable-next-line no-undef
   self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 }
 
-// App Check(reCAPTCHA v3) — 환경변수로만 주입
-const siteKey = import.meta.env.VITE_APPCHECK_SITE_KEY;
-if (!siteKey) {
-  console.error("[AppCheck] Missing VITE_APPCHECK_SITE_KEY env variable.");
-}
-initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(siteKey),
+// ▼ App Check(reCAPTCHA v3) – 네가 발급한 키를 그대로 사용
+const SITE_KEY = import.meta.env.VITE_APPCHECK_SITE_KEY || "6Lc2OK0rAAAAAGtCAkm1HHjxXpZak6EvDXdMCffT";
+if (!SITE_KEY) console.error("[AppCheck] site key가 비었습니다.");
+
+// App Check 초기화
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider(SITE_KEY),
   isTokenAutoRefreshEnabled: true,
 });
 
-export const auth = getAuth(app);
+// ▼ 키 상태 “미완료” 해소용: 첫 로드 때 즉시 토큰을 한 번 요청
+//    (이 호출이 성공하면 reCAPTCHA 콘솔에서 상태가 완료로 바뀜)
+(async () => {
+  try {
+    const t = await getAppCheckToken(appCheck, /* forceRefresh */ true);
+    console.log("[AppCheck] token acquired:", !!t.token);
+  } catch (e) {
+    console.error("[AppCheck] token request failed:", e);
+  }
+})();
+
+// ▼ 로그인 유지(퍼시스턴스) 보장
+const auth = getAuth(app);
+await setPersistence(auth, browserLocalPersistence).catch((e) =>
+  console.error("[Auth] setPersistence failed:", e)
+);
+
+export { app, auth };
 export const db = getFirestore(app);
-
-// ✅ auth 퍼시스턴스를 보장시키기 위한 준비 Promise를 함께 export
-//    (로그인 전에 반드시 완료되도록 사용)
-import { setPersistence, browserLocalPersistence } from "firebase/auth";
-export const authReady = setPersistence(getAuth(app), browserLocalPersistence)
-  .then(() => true)
-  .catch((e) => {
-    console.error("[Auth] setPersistence failed:", e);
-    return false;
-  });
-
 export default app;
