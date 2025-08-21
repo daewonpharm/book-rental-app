@@ -21,7 +21,7 @@ export default function Rent() {
       alert("해당 바코드의 책을 찾을 수 없습니다.");
       setBookTitle("");
       setBookCode("");
-      return;
+      return; // ← 여기서 종료, 여분의 `};` 금지!
     }
     const book = { id: snap.docs[0].id, ...snap.docs[0].data() };
     setBookTitle(book.title || "");
