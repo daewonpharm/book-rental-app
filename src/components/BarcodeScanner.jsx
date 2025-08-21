@@ -1,89 +1,74 @@
 import React, { useEffect, useRef } from "react";
 import { BrowserMultiFormatReader } from "@zxing/library";
 
-
-/**
-* 안정화 포인트
-* - decodeFromVideoDevice(deviceId, video, cb) 사용
-* - 후면 카메라 우선 선택
-* - 언마운트 시 reset() 및 트랙 정지
-*/
 export default function BarcodeScanner({ onDetected, onClose }) {
-const videoRef = useRef(null);
-const codeReaderRef = useRef(null);
-const streamRef = useRef(null);
+  const videoRef = useRef(null);
+  const codeReader = useRef(null);
 
+  useEffect(() => {
+    codeReader.current = new BrowserMultiFormatReader();
 
-useEffect(() => {
-const init = async () => {
-try {
-codeReaderRef.current = new BrowserMultiFormatReader();
+    const startScanner = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter((d) => d.kind === "videoinput");
+        const backCamera =
+          videoDevices.find((d) =>
+            d.label.toLowerCase().includes("back")
+          ) || videoDevices[0];
 
+        await codeReader.current.decodeFromVideoDevice(
+          backCamera.deviceId,
+          videoRef.current,
+          (result, err) => {
+            if (result) {
+              onDetected(result.getText().toLowerCase()); // 소문자 처리
+              codeReader.current.reset();
+            }
+          }
+        );
+      } catch (error) {
+        console.error("❌ 카메라 오류:", error);
+        onClose();
+      }
+    };
 
-// 후면 카메라 추정
-const devices = await navigator.mediaDevices.enumerateDevices();
-const videos = devices.filter(d => d.kind === "videoinput");
-let backCam = videos.find(v => /back|rear|환경|후면/i.test(v.label));
-if (!backCam && videos.length) backCam = videos[videos.length - 1];
-const deviceId = backCam ? backCam.deviceId : undefined;
+    startScanner();
 
+    return () => {
+      codeReader.current?.reset();
+    };
+  }, [onDetected, onClose]);
 
-// 미디어 직접 열어 후면 강제
-streamRef.current = await navigator.mediaDevices.getUserMedia({
-video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: "environment" } },
-audio: false,
-});
-if (videoRef.current) videoRef.current.srcObject = streamRef.current;
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md aspect-video bg-black overflow-hidden rounded"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 안내 문구 */}
+<div className="absolute bottom-2 left-2 right-2 text-sm text-yellow-300 bg-black/70 p-1 px-2 rounded">
+          ⚠️ iOS에서는 두 번째 스캔부터 전면 카메라가 사용될 수 있어요. 작동이 안 되면 새로고침 해주세요.
+        </div>
 
-
-await codeReaderRef.current.decodeFromVideoDevice(
-deviceId || null,
-videoRef.current,
-(result, err) => {
-if (result) {
-const text = result.getText();
-// 즉시 정리 후 상위로 전달
-cleanup();
-onDetected && onDetected(text);
-}
-}
-);
-} catch (e) {
-console.error(e);
-}
-};
-
-
-const cleanup = () => {
-try {
-if (codeReaderRef.current) {
-codeReaderRef.current.reset();
-codeReaderRef.current = null;
-}
-} catch {}
-try {
-if (streamRef.current) {
-streamRef.current.getTracks().forEach(t => t.stop());
-streamRef.current = null;
-}
-} catch {}
-};
-
-
-init();
-return () => cleanup();
-}, [onDetected]);
-
-
-return (
-<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-<div className="relative w-[92vw] max-w-sm rounded-2xl bg-white p-4">
-<video ref={videoRef} className="w-full rounded-xl" autoPlay playsInline muted />
-<div className="mt-2 rounded-lg border-2 border-green-500 p-2 text-center text-sm font-semibold">
-초록 박스 안에 바코드를 맞춰주세요
-</div>
-<button
-onClick={onClose}
-className="mt-3 w-full rounded-xl bg-neutral-900 px-4 py-2 text-white"
->
+        <video
+          ref={videoRef}
+          className="w-full h-full object-cover"
+          autoPlay
+          muted
+          playsInline
+        />
+        <div className="absolute inset-0 border-4 border-green-500 pointer-events-none" />
+        <button
+          className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded text-sm"
+          onClick={onClose}
+        >
+          닫기
+        </button>
+      </div>
+    </div>
+  );
 }
