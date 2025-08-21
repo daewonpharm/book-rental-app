@@ -1,5 +1,11 @@
 // src/auth.js
-import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+  onAuthStateChanged,
+} from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase.js";
 
@@ -12,11 +18,19 @@ export function watchAuth(setUser) {
 export async function login() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
+
   try {
-    return await signInWithPopup(auth, provider);
+    // 1) 우선 팝업 시도
+    await signInWithPopup(auth, provider);
   } catch (e) {
-    // 팝업 차단/사파리 등: 리다이렉트로 폴백
-    if (e?.code === "auth/popup-blocked" || e?.code === "auth/cancelled-popup-request") {
+    // 2) 팝업 실패 유형은 전부 리다이렉트로 폴백
+    const popupErrors = new Set([
+      "auth/popup-blocked",
+      "auth/cancelled-popup-request",
+      "auth/popup-closed-by-user",
+      "auth/operation-not-supported-in-this-environment", // iOS/Safari 등
+    ]);
+    if (popupErrors.has(e?.code)) {
       return signInWithRedirect(auth, provider);
     }
     throw e;
