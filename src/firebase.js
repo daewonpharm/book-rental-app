@@ -2,30 +2,29 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
-// ── ① .env(.local)/Vercel 환경변수 우선 사용
-const cfg = {
-  apiKey:           import.meta.env.VITE_FB_API_KEY,
-  authDomain:       import.meta.env.VITE_FB_AUTH_DOMAIN,
-  projectId:        import.meta.env.VITE_FB_PROJECT_ID,
-  storageBucket:    import.meta.env.VITE_FB_STORAGE_BUCKET,
-  messagingSenderId:import.meta.env.VITE_FB_MESSAGING_SENDER_ID,
-  appId:            import.meta.env.VITE_FB_APP_ID,
-};
-
-// ── ② 누락 시 기존 하드코드 값으로 안전한 fallback
 const firebaseConfig = {
-  apiKey:            cfg.apiKey            || "AIzaSyA-lPz7Ojjpv_o4EIFwbIUpV54ZCsPVeIE",
-  authDomain:        cfg.authDomain        || "dw-book-rental.firebaseapp.com",
-  projectId:         cfg.projectId         || "dw-book-rental",
-  // ✅ 반드시 appspot.com 이어야 합니다
-  storageBucket:     cfg.storageBucket     || "dw-book-rental.appspot.com",
-  messagingSenderId: cfg.messagingSenderId || "191103254450",
-  appId:             cfg.appId             || "1:191103254450:web:038689a9bcac8e0cfb2eab",
+  apiKey: "AIzaSyA-lPz7Ojjpv_o4EIFwbIUpV54ZCsPVeIE",
+  authDomain: "dw-book-rental.firebaseapp.com",
+  projectId: "dw-book-rental",
+  storageBucket: "dw-book-rental.appspot.com", // ✅ appspot.com
+  messagingSenderId: "191103254450",
+  appId: "1:191103254450:web:038689a9bcac8e0cfb2eab",
 };
 
 const app = initializeApp(firebaseConfig);
 
+// ⬇️ App Check (reCAPTCHA v3)
+if (import.meta.env.DEV) {
+  // 로컬 개발 편의: 콘솔에 디버그 토큰 출력 → App Check 콘솔에 등록하면 dev에서도 Enforce 유지 가능
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
+initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
+  isTokenAutoRefreshEnabled: true,
+});
+
 export const auth = getAuth(app);
-export const db   = getFirestore(app);
+export const db = getFirestore(app);
 export default app;
