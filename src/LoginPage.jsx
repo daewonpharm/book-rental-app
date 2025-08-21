@@ -6,6 +6,8 @@ import {
 } from "./auth.js";
 import { getRedirectResult } from "firebase/auth";
 import { auth, authReady } from "./firebase.js";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./firebase";
 
 // 기본 관리자 경로: /console-x7a2k9 (env 있으면 그 값 사용)
 const adminPath =
@@ -82,6 +84,19 @@ export default function LoginPage() {
     sessionStorage.setItem("nextAfterLogin", from || adminPath);
     await login();
   };
+  
+// LoginPage 컴포넌트 함수 내부, 아무 useEffect 아래든 OK. 딱 이 블록만 추가.
+useEffect(() => {
+  // App Check 토큰 발급을 강제로 트리거하기 위한 아주 가벼운 Firestore 읽기
+  (async () => {
+    try {
+      await getDoc(doc(db, "_appcheck_prime", "ping")); // 문서가 없어도 호출만 되면 충분
+    } catch (e) {
+      // 무시: 존재하지 않는 문서여도 네트워크 호출은 발생하여 App Check 토큰이 발급됨
+      // console.debug("prime skipped:", e);
+    }
+  })();
+}, []);
 
   return (
     <div style={{ padding: 24 }}>
