@@ -19,25 +19,22 @@ export default function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 가드가 넘겨준 원래 목적지(or 비공개 경로)
+  // 가드가 넘겨준 from(있을 때 우선), 없으면 세션 저장값, 그것마저 없으면 비공개 경로
   const from = useMemo(() => {
     const s = location.state?.from;
-    return typeof s === "string" && s.startsWith("/") ? s : adminPath;
+    const ss = sessionStorage.getItem("nextAfterLogin");
+    return (typeof s === "string" && s.startsWith("/"))
+      ? s
+      : (typeof ss === "string" && ss.startsWith("/"))
+        ? ss
+        : adminPath;
   }, [location.state, adminPath]);
 
-  // 🔄 Firebase 리다이렉트 로그인 결과 수거(새로고침/리다이렉트 후 1회)
+  // 리다이렉트 로그인 결과 수거 (오류는 무시)
   useEffect(() => {
-    let mounted = true;
     (async () => {
-      try {
-        await getRedirectResult(auth); // 결과만 소비, user는 onAuthStateChanged로 옴
-      } catch (e) {
-        // no-op: 'auth/no-auth-event' 등은 무시해도 됨
-        console.debug("getRedirectResult:", e?.code || e?.message || e);
-      }
-      if (!mounted) return;
+      try { await getRedirectResult(auth); } catch (_) {}
     })();
-    return () => { mounted = false; };
   }, []);
 
   // 사용자 상태 구독
@@ -53,18 +50,17 @@ export default function LoginPage() {
       if (!ok) {
         try { ok = await isFirestoreAdmin(user); } catch (e) { console.error("roles 확인 오류:", e); }
       }
-      if (mounted) {
-        setIsAdmin(ok);
-        setCheckingRole(false);
-      }
+      if (mounted) { setIsAdmin(ok); setCheckingRole(false); }
     })();
     return () => { mounted = false; };
   }, [user]);
 
-  // ✅ 로그인 + 관리자면 자동으로 원래 가던 경로로 복귀
+  // ✅ 로그인 + 관리자면 원래 목적지로 복귀 (세션 키도 정리)
   useEffect(() => {
     if (user && !checkingRole && isAdmin) {
-      navigate(from, { replace: true });
+      const target = from;
+      sessionStorage.removeItem("nextAfterLogin");
+      navigate(target, { replace: true });
     }
   }, [user, checkingRole, isAdmin, from, navigate]);
 
@@ -84,11 +80,6 @@ export default function LoginPage() {
           <div style={{ marginTop: 16 }}>
             {checkingRole ? "권한 확인 중..." : (isAdmin ? "✅ 관리자 권한" : "❌ 관리자 아님")}
           </div>
-          {isAdmin && (
-            <p style={{ marginTop: 8, color: "#666" }}>
-              로그인 유지됨. 비공개 경로로 자동 이동합니다…
-            </p>
-          )}
         </div>
       )}
     </div>

@@ -6,7 +6,8 @@ import {
   signOut,
   onAuthStateChanged,
   setPersistence,
-  browserLocalPersistence, // ← 로컬 스토리지(탭/새로고침 유지)
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase.js";
@@ -14,6 +15,7 @@ import { auth, db } from "./firebase.js";
 // 하드코딩 관리자 UID
 export const ADMIN_UIDS = new Set(["FPXqlof4M3V9kB80nMMkZNkDTn52"]);
 
+// 로그인 상태 구독
 export function watchAuth(setUser) {
   return onAuthStateChanged(auth, (user) => setUser(user));
 }
@@ -22,13 +24,17 @@ export async function login() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
 
-  // ✅ 먼저 퍼시스턴스를 'local'로 고정 (리다이렉트/새로고침 후에도 유지)
-  await setPersistence(auth, browserLocalPersistence);
+  // 1) 퍼시스턴스: IndexedDB 우선 → 실패 시 LocalStorage
+  try {
+    await setPersistence(auth, indexedDBLocalPersistence);
+  } catch {
+    await setPersistence(auth, browserLocalPersistence);
+  }
 
+  // 2) 팝업 우선 시도 → 팝업 관련 오류는 리다이렉트로 폴백
   try {
     await signInWithPopup(auth, provider);
   } catch (e) {
-    // ✅ 팝업 관련 오류는 전부 리다이렉트로 폴백
     const popupErrors = new Set([
       "auth/popup-blocked",
       "auth/cancelled-popup-request",
