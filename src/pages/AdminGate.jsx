@@ -14,7 +14,7 @@ export default function AdminGate() {
       alert("❌ 비밀번호가 틀렸습니다.");
       navigate("/");
     }
-  }, []);
+  }, [navigate]); // ✅ navigate 의존성 추가
 
   return <div className="text-center mt-10 text-gray-600">접속 확인 중입니다...</div>;
 }

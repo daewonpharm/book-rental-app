@@ -1,23 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/pages/Admin.jsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { db } from "../firebase.js";
-import {
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-} from "firebase/firestore";
+import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 
 /** Firestore Timestamp | string | null -> 보기 좋은 날짜/시간 */
 function fmt(ts) {
   if (!ts) return "-";
   try {
-    // Timestamp 타입
     if (typeof ts?.toDate === "function") return ts.toDate().toLocaleString();
-    // 문자열(ISO/일반)
     const d = new Date(ts);
     if (!isNaN(d.getTime())) return d.toLocaleString();
-  } catch (_) {}
+  } catch {
+    /* no-op */
+  }
   return String(ts);
 }
 
@@ -27,17 +22,12 @@ export default function Admin() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  // 페이지네이션이 필요하면 마지막 문서 기억해서 startAfter로 확장 가능
-  // 여기서는 최근 200건만 간단히 표시
-  const fetchLogs = async () => {
+  // ✅ 의존성 안전: useCallback으로 고정
+  const fetchLogs = useCallback(async () => {
     setError("");
     setRefreshing(true);
     try {
-      const q = query(
-        collection(db, "rentLogs"),
-        orderBy("rentedAt", "desc"),
-        limit(200)
-      );
+      const q = query(collection(db, "rentLogs"), orderBy("rentedAt", "desc"), limit(200));
       const snap = await getDocs(q);
       const rows = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setLogs(rows);
@@ -48,14 +38,12 @@ export default function Admin() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchLogs]);
 
-  // 인기 도서 TOP 5 (반납 완료/미완료 무관, 제목 기준 count)
   const top5 = useMemo(() => {
     const counts = new Map();
     logs.forEach((r) => {

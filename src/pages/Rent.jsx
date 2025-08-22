@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import {
-  collection, getDocs, doc, getDoc, serverTimestamp, setDoc, updateDoc,
-  query, where, limit
+  collection, getDocs, getDoc, doc, query, where, limit,
+  serverTimestamp, updateDoc, addDoc
 } from "firebase/firestore";
 import Stepper from "../components/Stepper";
 import Summary from "../components/Summary";
@@ -11,6 +11,7 @@ import SuccessOverlay from "../components/SuccessOverlay";
 import BarcodeScanner from "../components/BarcodeScanner";
 import { Icons } from "../constants/icons";
 
+/** 6자리 사번 검사 */
 const isValidEmployeeId = (v) => /^\d{6}$/.test(String(v || ""));
 
 export default function Rent() {
@@ -18,95 +19,101 @@ export default function Rent() {
   const [employeeId, setEmployeeId] = useState("");
   const [bookCode, setBookCode] = useState("");
   const [bookTitle, setBookTitle] = useState("");
-  const [books, setBooks] = useState([]);
+  const [bookDocId, setBookDocId] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0); // 🔑 매 스캔마다 인스턴스 새로
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      if (!db) return;
-      try {
-        const snap = await getDocs(collection(db, "books"));
-        setBooks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (e) {
-        console.error("[Rent] Firestore error:", e);
-      }
-    })();
-  }, []);
+  // 책 정보 요약
+  const summaryItems = useMemo(() => ([
+    { label: "도서", value: bookTitle || "—" },
+    { label: "사번", value: employeeId || "—" },
+  ]), [bookTitle, employeeId]);
 
-  const handleDetected = (code) => {
-    const found = books.find((b) => b.id === code || b.bookCode === code);
-    setBookCode(code);
-    setBookTitle(found?.title || found?.name || "");
-    setShowScanner(false);
-    setStep(2);
+  // 스캔 성공
+  const handleDetected = async (raw) => {
+    const code = String(raw || "").trim().toLowerCase();
+    if (!code) return;
+    try {
+      const q = query(collection(db, "books"), where("code", "==", code), limit(1));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        alert("해당 바코드의 책을 찾을 수 없어요. 관리자에게 문의해 주세요.");
+        setShowScanner(false);
+        return;
+      }
+      const docSnap = snap.docs[0];
+      const data = docSnap.data();
+      setBookDocId(docSnap.id);
+      setBookCode(code);
+      setBookTitle(data.title || "");
+      setShowScanner(false);
+      setStep(2);
+    } catch (e) {
+      console.error(e);
+      alert("스캔 처리 중 오류가 발생했어요.");
+      setShowScanner(false);
+    }
   };
 
-  const canSubmit = useMemo(() => isValidEmployeeId(employeeId) && !!bookCode, [employeeId, bookCode]);
-
   const onSubmit = async (e) => {
-    e.preventDefault();
-    if (!canSubmit) return;
-    try {
-      if (!db) throw new Error("Firebase가 초기화되지 않았습니다. /__env를 확인하세요.");
-      setLoading(true);
+    e?.preventDefault?.();
+    if (!bookDocId) return alert("책을 먼저 스캔해 주세요.");
+    if (!isValidEmployeeId(employeeId)) return alert("사번 6자리를 입력해 주세요.");
 
-      // books 문서 찾기 (문서ID → bookCode 필드 역검색까지)
-      let bookRef = doc(db, "books", bookCode);
-      let bookSnap = await getDoc(bookRef);
-      if (!bookSnap.exists()) {
-        const qy = query(collection(db, "books"), where("bookCode", "==", bookCode), limit(1));
-        const qs = await getDocs(qy);
-        if (qs.empty) throw new Error("존재하지 않는 도서 코드입니다.");
-        bookRef = qs.docs[0].ref;
-        bookSnap = qs.docs[0];
+    setLoading(true);
+    try {
+      const bookRef = doc(db, "books", bookDocId);
+      const bookSnap = await getDoc(bookRef);
+      if (!bookSnap.exists()) throw new Error("책 문서를 찾을 수 없습니다.");
+      const book = bookSnap.data();
+
+      if (book.status === "rented") {
+        return alert("이미 대출 중인 도서입니다.");
       }
 
-      const b = bookSnap.data();
-      const isAvail = typeof b.isAvailable === "boolean" ? b.isAvailable
-                    : typeof b.available === "boolean" ? b.available
-                    : true;
-      const status = b.status || (isAvail ? "대출가능" : "대출중");
-      if (status === "대출중") throw new Error("이미 대출 중인 도서입니다.");
+      // 반납 예정일 = 2주 후
+      const due = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
-      // 대여 로그 생성
-      const logRef = doc(collection(db, "rentLogs"));
-      await setDoc(logRef, {
-        logId: logRef.id,
-        bookCode,
-        title: b.title || bookTitle || bookCode,
-        renterId: employeeId,
+      // 책 상태 업데이트
+      await updateDoc(bookRef, {
+        status: "rented",
+        currentBorrowerId: employeeId,
+        rentedAt: serverTimestamp(),
+        dueAt: due,
+      });
+
+      // 누적 로그 추가
+      await addDoc(collection(db, "rentLogs"), {
+        bookId: bookDocId,
+        bookCode: bookCode,
+        title: book.title || bookTitle,
+        employeeId: employeeId,
         rentedAt: serverTimestamp(),
         returnedAt: null,
-        rating: null,
       });
 
-      // 책 상태 업데이트 (두 스키마 동시 반영)
-      await updateDoc(bookRef, {
-        status: "대출중",
-        isAvailable: false,
-        available: false,
-        dueDate: b.dueDate || null,
-      });
-
-      setSuccess(true);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "처리 중 오류가 발생했습니다.");
+      setSuccess(true); // ✅ 책 애니메이션 오버레이 표시
+    } catch (e) {
+      console.error(e);
+      alert("대여 처리 중 오류가 발생했어요.");
     } finally {
       setLoading(false);
     }
   };
 
   const resetAll = () => {
-    setEmployeeId(""); setBookCode(""); setBookTitle(""); setStep(1); setSuccess(false);
+    setStep(1);
+    setEmployeeId("");
+    setBookCode("");
+    setBookTitle("");
+    setBookDocId(null);
+    setSuccess(false);
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 상단 네비게이션 */}
-
       <h1 className="text-lg font-bold">
         <span aria-hidden className="mr-2">{Icons.rent}</span>대여하기
       </h1>
@@ -118,44 +125,63 @@ export default function Rent() {
             <label className="block text-sm font-semibold">{Icons.scan} 바코드 스캔</label>
             <button
               type="button"
-              onClick={() => setShowScanner(true)}
+              onClick={() => { setScannerKey(k => k + 1); setShowScanner(true); }}
               className="w-full mt-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-base font-medium hover:bg-gray-50"
             >
               <span className="mr-1">{Icons.scan}</span>카메라로 스캔하기
             </button>
+
             {showScanner && (
               <ScannerModal onClose={() => setShowScanner(false)}>
-                <BarcodeScanner onDetected={handleDetected} />
-                <p className="mt-3 text-xs text-gray-500">⚠️ iOS에서는 후면 카메라 고정 등 이슈가 있을 수 있어요. 재시작해 주세요.</p>
+                <BarcodeScanner
+                  key={scannerKey}
+                  onDetected={handleDetected}
+                  onClose={() => setShowScanner(false)}
+                />
               </ScannerModal>
             )}
+
+            <input
+              type="text"
+              value={bookTitle}
+              readOnly
+              placeholder="도서 제목 (스캔 시 자동 표시)"
+              className="mt-4 w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-3 text-base"
+            />
           </>
         )}
 
         {step === 2 && (
           <>
-            <Summary title={bookTitle} onRescan={() => { setStep(1); }} />
-            <input
-              value={bookTitle}
-              readOnly
-              placeholder="도서 제목 (스캔 시 자동 표시)"
-              className="block w-full mt-3 rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
-            />
+            <Summary items={summaryItems} />
 
-            <label className="block mt-4 text-sm font-semibold">사번 {Icons.employeeId}</label>
+            <label className="block mt-4 text-sm font-semibold">사번</label>
             <input
+              inputMode="numeric"
+              pattern="\d*"
+              maxLength={6}
               value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
-              inputMode="numeric" maxLength={6} placeholder="6자리 숫자"
-              className="block w-full rounded-xl border border-gray-300 px-3 py-3 text-base focus:ring-2 focus:ring-gray-900 outline-none"
+              onChange={(e) => setEmployeeId(e.target.value.replace(/\D/g, "").slice(0,6))}
+              className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-base"
+              placeholder="사번 6자리"
             />
 
-            <button
-              type="submit" disabled={!canSubmit || loading}
-              className="mt-6 w-full rounded-xl bg-gray-900 text-white py-3 text-sm font-semibold disabled:opacity-40"
-            >
-              {loading ? "처리 중..." : "대여 등록"}
-            </button>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="flex-1 rounded-xl border border-gray-200 px-3 py-3 text-base"
+              >
+                이전
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !isValidEmployeeId(employeeId)}
+                className="flex-1 rounded-xl bg-black text-white px-3 py-3 text-base disabled:opacity-50"
+              >
+                {loading ? "처리 중..." : "대여 완료"}
+              </button>
+            </div>
           </>
         )}
       </form>
